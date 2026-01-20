@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Soft Tennis Scorer V5 (Soft UI & Fix Logic)</title>
+    <title>Soft Tennis Scorer V6 (Edit & Resume)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* ================= 印刷設定 ================= */
@@ -46,8 +46,6 @@
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
       }
-
-      /* 画面制御 */
       .screen {
         display: none;
         height: 100vh;
@@ -58,7 +56,7 @@
         display: flex;
       }
 
-      /* ジャッジペーパー罫線 */
+      /* 罫線・マーク */
       .b-r {
         border-right: 1px solid #000;
       }
@@ -74,16 +72,12 @@
       .b-b-dotted {
         border-bottom: 1px dotted #999;
       }
-
-      /* 高さ計算 */
       .h-game {
         height: calc(100% * 2 / 15);
       }
       .h-final {
         height: calc(100% * 3 / 15);
       }
-
-      /* マーク */
       .mark-o {
         font-size: 1.2rem;
         font-weight: bold;
@@ -95,8 +89,6 @@
         line-height: 1;
         display: block;
       }
-
-      /* アニメーション */
       .btn-press {
         transition:
           transform 0.05s,
@@ -107,22 +99,22 @@
         opacity: 0.9;
       }
 
-      /* カスタムカラー */
+      /* テーマカラー */
       .bg-theme-a {
         background-color: #6366f1;
-      } /* Indigo-500 */
+      }
       .bg-theme-b {
         background-color: #f43f5e;
-      } /* Rose-500 */
+      }
       .text-theme-a {
         color: #4338ca;
-      } /* Indigo-700 */
+      }
       .text-theme-b {
         color: #be123c;
-      } /* Rose-700 */
+      }
       .bg-theme-bg {
         background-color: #f8fafc;
-      } /* Slate-50 */
+      }
     </style>
   </head>
   <body
@@ -132,11 +124,16 @@
       id="screen-setup"
       class="screen active p-6 overflow-y-auto bg-slate-50"
     >
-      <div class="max-w-md mx-auto w-full">
+      <div class="max-w-md mx-auto w-full pb-10">
         <h1
-          class="text-2xl font-bold mb-6 text-slate-700 border-b border-slate-300 pb-2"
+          class="text-2xl font-bold mb-6 text-slate-700 border-b border-slate-300 pb-2 flex justify-between items-center"
         >
-          New Match
+          <span>Match Setup</span>
+          <span
+            id="resume-badge"
+            class="hidden text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full"
+            >試合進行中</span
+          >
         </h1>
 
         <div
@@ -225,11 +222,11 @@
         >
           <label
             class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"
-            >First Server (Toss Winner)</label
+            >First Server</label
           >
           <div class="flex gap-4">
             <label
-              class="flex-1 border-2 border-slate-100 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 hover:bg-slate-50"
+              class="flex-1 border-2 border-slate-100 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"
             >
               <input
                 type="radio"
@@ -242,7 +239,7 @@
               <span class="text-[10px] text-slate-400">Starts</span>
             </label>
             <label
-              class="flex-1 border-2 border-slate-100 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50 hover:bg-slate-50"
+              class="flex-1 border-2 border-slate-100 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50"
             >
               <input
                 type="radio"
@@ -256,53 +253,76 @@
           </div>
         </div>
 
-        <button
-          onclick="startGame()"
-          class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-slate-300 btn-press text-lg flex items-center justify-center gap-2"
-        >
-          <span>Start Match</span>
-          <svg
-            class="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div class="space-y-3">
+          <button
+            onclick="handleStartButton()"
+            id="btn-start-main"
+            class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-slate-300 btn-press text-lg flex items-center justify-center gap-2"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M14 5l7 7m0 0l-7 7m7-7H3"
-            ></path>
-          </svg>
-        </button>
+            <span>Start Match</span>
+          </button>
+
+          <button
+            onclick="forceReset()"
+            id="btn-force-reset"
+            class="hidden w-full bg-white border border-red-200 text-red-500 font-bold py-3 rounded-xl text-sm"
+          >
+            スコアをリセットして新規作成
+          </button>
+        </div>
       </div>
     </div>
 
     <div id="screen-game" class="screen bg-slate-100">
       <div class="bg-white shadow-sm z-10 sticky top-0">
-        <div
-          class="p-2 px-4 flex justify-between items-center bg-slate-800 text-white m-2 rounded-xl shadow-lg"
-        >
-          <div class="flex flex-col">
-            <div class="text-[10px] text-slate-400 font-bold tracking-wider">
-              GAME COUNT
-            </div>
-            <div
-              class="text-2xl font-mono font-bold tracking-widest flex items-center gap-2"
+        <div class="flex justify-between items-center px-4 pt-4 pb-2">
+          <button
+            onclick="editSettings()"
+            class="text-slate-400 hover:text-slate-600 p-2 rounded-lg border border-transparent hover:border-slate-200 transition flex items-center gap-1 text-xs font-bold"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <span id="game-gcount-a" class="text-indigo-300">0</span>
-              <span class="text-slate-500 text-sm">-</span>
-              <span id="game-gcount-b" class="text-rose-300">0</span>
-            </div>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              ></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              ></path>
+            </svg>
+            設定/修正
+          </button>
+          <div
+            class="font-bold text-sm bg-slate-700 px-3 py-1 rounded-full text-slate-200"
+          >
+            GAME <span id="game-seq">1</span>
           </div>
-          <div class="text-right">
-            <div class="text-[10px] text-slate-400 font-bold tracking-wider">
-              CURRENT
-            </div>
-            <div
-              class="font-bold text-sm bg-slate-700 px-2 py-0.5 rounded text-slate-200"
-            >
-              GAME <span id="game-seq">1</span>
+        </div>
+
+        <div class="px-4 pb-4">
+          <div
+            class="flex justify-between items-center bg-slate-800 text-white p-3 rounded-xl shadow-lg"
+          >
+            <div class="flex flex-col">
+              <div class="text-[10px] text-slate-400 font-bold tracking-wider">
+                GAME COUNT
+              </div>
+              <div
+                class="text-2xl font-mono font-bold tracking-widest flex items-center gap-2"
+              >
+                <span id="game-gcount-a" class="text-indigo-300">0</span>
+                <span class="text-slate-500 text-sm">-</span>
+                <span id="game-gcount-b" class="text-rose-300">0</span>
+              </div>
             </div>
           </div>
         </div>
@@ -352,7 +372,7 @@
           </div>
         </div>
 
-        <div class="flex-1 flex gap-3 min-h-[200px] mb-4">
+        <div class="flex-1 flex gap-3 min-h-[180px] mb-4">
           <button
             onclick="addPoint('A')"
             class="flex-1 bg-theme-a active:bg-indigo-600 text-white rounded-2xl shadow-md shadow-indigo-200 flex flex-col items-center justify-center btn-press p-2 relative overflow-hidden group"
@@ -402,20 +422,7 @@
             onclick="showPaper()"
             class="bg-slate-700 text-white font-bold py-3 rounded-xl shadow-sm btn-press text-sm hover:bg-slate-600 flex items-center justify-center gap-2"
           >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              ></path>
-            </svg>
-            Check Paper
+            📄 Check Paper
           </button>
         </div>
 
@@ -456,20 +463,7 @@
           onclick="window.print()"
           class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-500 shadow text-sm flex items-center gap-2"
         >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-            ></path>
-          </svg>
-          Print
+          🖨️ Print
         </button>
       </div>
 
@@ -500,7 +494,6 @@
                 <span id="out-gcount-b">0</span>
               </div>
             </div>
-
             <div class="h-[12%] flex b-b border-black">
               <div class="w-[42%] flex flex-col b-r">
                 <div class="h-1/2 b-b flex">
@@ -562,7 +555,6 @@
                 </div>
               </div>
             </div>
-
             <div class="flex-1 flex w-full relative">
               <div class="flex-1 flex">
                 <div
@@ -583,7 +575,6 @@
                 ></div>
               </div>
             </div>
-
             <div class="h-[13%] b-t border-black flex flex-col">
               <div class="h-[50%] border-b border-black flex">
                 <div
@@ -652,7 +643,7 @@
     </div>
 
     <script>
-      // === State Management ===
+      // === State ===
       const state = {
         games: [],
         history: [],
@@ -660,28 +651,78 @@
         winner: null,
         startTime: null,
         endTime: null,
-
-        // Config
         tourney: "",
         date: "",
         p1: "",
         org1: "",
         p2: "",
-        org2: "", // Team A
+        org2: "",
         p3: "",
         org3: "",
         p4: "",
-        org4: "", // Team B
+        org4: "",
         nameLabelA: "A",
         nameLabelB: "B",
-
-        initialServer: "A", // 'A' or 'B' (Game 1 Start)
+        initialServer: "A",
       };
-
       const MAX_HISTORY = 50;
 
-      // === Setup ===
-      function startGame() {
+      // === Navigation & Flow ===
+
+      // 試合画面から設定画面へ戻る
+      function editSettings() {
+        // 試合進行中かどうかを判定
+        const hasPoints = state.games.some((g) => g.points.length > 0);
+
+        // UI表示の切り替え
+        const startBtn = document.getElementById("btn-start-main");
+        const resetBtn = document.getElementById("btn-force-reset");
+        const badge = document.getElementById("resume-badge");
+
+        if (hasPoints) {
+          startBtn.innerHTML = "<span>Update Info & Resume</span>";
+          resetBtn.classList.remove("hidden");
+          badge.classList.remove("hidden");
+        } else {
+          startBtn.innerHTML = "<span>Start Match</span>";
+          resetBtn.classList.add("hidden");
+          badge.classList.add("hidden");
+        }
+        switchScreen("setup");
+      }
+
+      // 設定画面の「開始/更新」ボタンの挙動
+      function handleStartButton() {
+        // フォーム内容をStateに保存
+        saveSetupToState();
+
+        // 試合が既に進行中か？
+        const hasPoints = state.games.some((g) => g.points.length > 0);
+
+        if (!hasPoints) {
+          // 新規開始
+          initGameLogic();
+        }
+        // どちらの場合も画面などを更新して試合画面へ
+        applyLabels();
+        buildPaperDOM(); // 初回またはリセット後
+        updateGameScreen();
+        switchScreen("game");
+      }
+
+      // 強制リセット（設定画面から）
+      function forceReset() {
+        if (confirm("現在のスコアを全て削除して、新しい試合を開始しますか？")) {
+          saveSetupToState();
+          initGameLogic();
+          applyLabels();
+          buildPaperDOM();
+          updateGameScreen();
+          switchScreen("game");
+        }
+      }
+
+      function saveSetupToState() {
         state.tourney = document.getElementById("setup-tourney").value;
         state.date = document.getElementById("setup-date").value;
         state.p1 = document.getElementById("setup-p1").value;
@@ -698,21 +739,13 @@
           if (r.checked) state.initialServer = r.value;
         }
 
-        let labelA =
+        state.nameLabelA =
           [state.p1, state.p2].filter(Boolean).join("・") || "Team A";
-        let labelB =
+        state.nameLabelB =
           [state.p3, state.p4].filter(Boolean).join("・") || "Team B";
-        state.nameLabelA = labelA;
-        state.nameLabelB = labelB;
-
-        initGameLogic();
-        applyLabels();
-        buildPaperDOM();
-        updateGameScreen();
-        switchScreen("game");
       }
 
-      // === Logic ===
+      // === Game Logic ===
       function initGameLogic() {
         state.startTime = new Date().toLocaleTimeString("ja-JP", {
           hour: "2-digit",
@@ -721,7 +754,6 @@
         state.games = [];
         state.history = [];
         state.matchFinished = false;
-        // 7 Games
         for (let i = 0; i < 7; i++) {
           state.games.push({
             finished: false,
@@ -735,8 +767,6 @@
 
       function addPoint(playerKey) {
         if (state.matchFinished) return;
-
-        // History
         if (state.history.length >= MAX_HISTORY) state.history.shift();
         state.history.push(
           JSON.stringify({
@@ -748,7 +778,6 @@
 
         const gameIdx = getCurrentGameIndex();
         if (gameIdx === -1) return;
-
         const game = state.games[gameIdx];
         game.points.push(playerKey);
 
@@ -760,7 +789,6 @@
 
         const isFinal = gameIdx === 6;
         const target = isFinal ? 7 : 4;
-
         if (pA >= target && pA >= pB + 2) {
           game.finished = true;
           game.winner = "A";
@@ -810,31 +838,26 @@
         return state.games.findIndex((g) => !g.finished);
       }
 
-      // === Server Calculation ===
+      // サーバー計算ロジック
       function getNextServer(gameIdx, pointsCount) {
         if (gameIdx === -1) return "---";
-
         const firstServer = state.initialServer;
         const secondServer = firstServer === "A" ? "B" : "A";
         let currentSide = "";
 
         if (gameIdx < 6) {
-          // Normal: Game 1,3,5=First, 2,4,6=Second
-          // Index 0,2,4 -> First. Index 1,3,5 -> Second.
           currentSide = gameIdx % 2 === 0 ? firstServer : secondServer;
         } else {
-          // Final (Game 7/Index 6): Soft Tennis Rotation (2-2-2)
+          // Final (Game 7): 2 points rotation
           // Starts with the side that follows Game 6 order.
           // Game 6 (index 5) was SecondServer. So Final starts FirstServer.
-          // Rotation: 2 points each.
           const rot = Math.floor(pointsCount / 2);
           currentSide = rot % 2 === 0 ? firstServer : secondServer;
         }
-
         return currentSide === "A" ? state.nameLabelA : state.nameLabelB;
       }
 
-      // === UI ===
+      // === UI Update ===
       function applyLabels() {
         document.getElementById("btn-name-a").innerText = state.nameLabelA;
         document.getElementById("btn-name-b").innerText = state.nameLabelB;
@@ -852,7 +875,6 @@
         state.games.forEach((g) => {
           if (g.finished) g.winner === "A" ? wA++ : wB++;
         });
-
         document.getElementById("game-gcount-a").innerText = wA;
         document.getElementById("game-gcount-b").innerText = wB;
 
@@ -866,7 +888,6 @@
           document.getElementById("game-point-a").innerText = game.scoreA;
           document.getElementById("game-point-b").innerText = game.scoreB;
 
-          // Next Server Calculation
           const srvName = getNextServer(currentIdx, game.points.length);
           serverIndEl.innerText = srvName;
           serverIndEl.className =
@@ -901,7 +922,6 @@
           .forEach((el) => el.classList.remove("active"));
         document.getElementById(`screen-${id}`).classList.add("active");
       }
-
       function buildPaperDOM() {
         const ids = [
           "col-sr-a",
@@ -913,13 +933,6 @@
           "footer-row-b",
         ];
         ids.forEach((id) => (document.getElementById(id).innerHTML = ""));
-
-        let htmlGrid_A = "",
-          htmlCenter = "",
-          htmlGrid_B = "",
-          htmlFoot_A = "",
-          htmlFoot_B = "";
-
         for (let i = 0; i < 7; i++) {
           const isFinal = i === 6;
           const hClass = isFinal ? "h-final" : "h-game";
@@ -927,7 +940,6 @@
             `<div id="sr-a-${i}" class="${hClass} b-b flex items-center justify-center relative"></div>`;
           document.getElementById("col-sr-b").innerHTML +=
             `<div id="sr-b-${i}" class="${hClass} b-b flex items-center justify-center relative"></div>`;
-
           const rows = isFinal ? 3 : 2;
           const makeGrid = (pid) => {
             let s = `<div class="${hClass} b-b flex flex-col">`;
@@ -937,25 +949,21 @@
                 s += `<div id="cell-${pid}-${i}-${r}-${c}" class="flex-1 b-r border-gray-400 flex items-center justify-center"></div>`;
               s += `</div>`;
             }
-            s += `</div>`;
             return s;
           };
           document.getElementById("col-grid-a").innerHTML += makeGrid("a");
           document.getElementById("col-grid-b").innerHTML += makeGrid("b");
-
           let centerC = isFinal
             ? `<div class="border border-black rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-white mb-0.5">F</div>`
             : `<div class="text-lg font-bold leading-none mb-0.5">${i + 1}</div>`;
           document.getElementById("col-center").innerHTML +=
             `<div class="${hClass} b-b flex flex-col items-center justify-center">${centerC}<div id="paper-score-${i}" class="w-10 h-3 border border-black bg-white flex items-center justify-center text-[8px] text-gray-300">( - )</div></div>`;
-
           document.getElementById("footer-row-a").innerHTML +=
             `<div id="sum-a-${i}" class="flex-1 b-r border-gray-400 flex items-center justify-center font-bold text-[10px]"></div>`;
           document.getElementById("footer-row-b").innerHTML +=
             `<div id="sum-b-${i}" class="flex-1 b-r border-gray-400 flex items-center justify-center font-bold text-[10px]"></div>`;
         }
       }
-
       function updatePaperView() {
         [
           "tourney",
@@ -980,13 +988,11 @@
         document
           .querySelectorAll('[id^="sum-"]')
           .forEach((e) => (e.textContent = ""));
-
         let wA = 0,
           wB = 0;
         state.games.forEach((g, idx) => {
           const isFinal = idx === 6;
           if (g.finished) g.winner === "A" ? wA++ : wB++;
-
           const sb = document.getElementById(`paper-score-${idx}`);
           if (g.points.length > 0) {
             sb.textContent = `(${g.scoreA}-${g.scoreB})`;
@@ -997,15 +1003,12 @@
             sb.className =
               "w-10 h-3 border border-black bg-white flex items-center justify-center text-[8px] text-gray-300";
           }
-
           if (g.points.length > 0) {
-            // S mark logic: who served the 1st point (index 0)
             const startSideName = getNextServer(idx, 0);
             const sideCode = startSideName === state.nameLabelA ? "a" : "b";
             const srEl = document.getElementById(`sr-${sideCode}-${idx}`);
             if (srEl) srEl.textContent = "S";
           }
-
           g.points.forEach((winner, pIdx) => {
             const row = Math.floor(pIdx / 16);
             const col = pIdx % 16;
@@ -1020,18 +1023,15 @@
               if (cB) cB.innerHTML = '<span class="mark-o">○</span>';
             }
           });
-
           if (g.finished) {
             document.getElementById(`sum-a-${idx}`).textContent = g.scoreA;
             document.getElementById(`sum-b-${idx}`).textContent = g.scoreB;
           }
         });
-
         document.getElementById("out-gcount-a").textContent = wA;
         document.getElementById("out-gcount-b").textContent = wB;
         document.getElementById("footer-total-a").textContent = wA;
         document.getElementById("footer-total-b").textContent = wB;
-
         if (state.matchFinished) {
           const circled = ["0", "①", "②", "③", "④", "⑤", "⑥", "⑦"];
           const strA = wA <= 7 ? circled[wA] || wA : wA;
@@ -1041,7 +1041,6 @@
         } else {
           document.getElementById("out-final-score").textContent = "";
         }
-
         document.getElementById("out-time-start").textContent =
           state.startTime || "";
         document.getElementById("out-time-end").textContent =
