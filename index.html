@@ -4,59 +4,87 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>Soft Tennis Scorer V6 (Edit & Resume)</title>
+    <title>Soft Tennis Scorer V7 (iOS Fixed)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* ================= 印刷設定 ================= */
+      /* ================= 印刷設定 (iOS対応強化) ================= */
       @page {
         size: A4 portrait;
         margin: 0;
       }
 
       @media print {
-        body,
-        html {
-          width: 210mm;
-          height: 297mm;
+        body {
           background: white;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
+        /* 印刷時は全スクリーンを隠す */
         .screen {
           display: none !important;
         }
-        #print-container {
+        /* 印刷コンテナだけを表示 */
+        #print-wrapper {
           display: block !important;
           position: absolute;
           top: 0;
           left: 0;
-          width: 100%;
-          height: 100%;
+          width: 210mm;
+          height: 297mm;
           margin: 0;
           padding: 0;
           border: none;
-          transform: none !important;
+          overflow: hidden;
+          z-index: 9999;
+        }
+        #print-container {
+          transform: none !important; /* 印刷時は縮小しない */
+          width: 100% !important;
+          height: 100% !important;
+          box-shadow: none !important;
+          border: none !important;
         }
       }
 
-      /* ================= UIスタイル (Soft Theme) ================= */
+      /* ================= UIスタイル ================= */
       body {
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: #f8fafc;
+        color: #334155;
+        height: 100dvh; /* iOSのアドレスバー対策 */
+        width: 100vw;
+        overflow: hidden;
       }
+
+      /* 画面制御 */
       .screen {
         display: none;
-        height: 100vh;
+        height: 100%;
+        width: 100%;
         flex-direction: column;
         overflow: hidden;
+        position: absolute;
+        top: 0;
+        left: 0;
       }
       .screen.active {
         display: flex;
       }
 
-      /* 罫線・マーク */
+      /* iOSでの入力ズーム防止 (16px以上) */
+      input,
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+
+      /* ジャッジペーパー罫線 */
       .b-r {
         border-right: 1px solid #000;
       }
@@ -89,13 +117,15 @@
         line-height: 1;
         display: block;
       }
+
+      /* アニメーション */
       .btn-press {
         transition:
           transform 0.05s,
           opacity 0.1s;
       }
       .btn-press:active {
-        transform: scale(0.97);
+        transform: scale(0.96);
         opacity: 0.9;
       }
 
@@ -112,121 +142,111 @@
       .text-theme-b {
         color: #be123c;
       }
-      .bg-theme-bg {
-        background-color: #f8fafc;
-      }
     </style>
   </head>
-  <body
-    class="bg-theme-bg text-slate-700 font-sans select-none fixed w-full h-full"
-  >
-    <div
-      id="screen-setup"
-      class="screen active p-6 overflow-y-auto bg-slate-50"
-    >
-      <div class="max-w-md mx-auto w-full pb-10">
-        <h1
-          class="text-2xl font-bold mb-6 text-slate-700 border-b border-slate-300 pb-2 flex justify-between items-center"
+  <body class="safe-area-inset-bottom">
+    <div id="screen-setup" class="screen active bg-slate-50">
+      <div
+        class="px-6 pt-10 pb-4 bg-white shadow-sm shrink-0 z-10 flex justify-between items-center"
+      >
+        <h1 class="text-xl font-bold text-slate-700">Match Setup</h1>
+        <span
+          id="resume-badge"
+          class="hidden text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full"
+          >進行中</span
         >
-          <span>Match Setup</span>
-          <span
-            id="resume-badge"
-            class="hidden text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full"
-            >試合進行中</span
-          >
-        </h1>
+      </div>
 
+      <div class="flex-1 overflow-y-auto p-4 pb-24">
         <div
-          class="mb-6 space-y-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200"
+          class="mb-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100"
         >
-          <label
-            class="block text-xs font-bold text-slate-400 uppercase tracking-wider"
-            >Tournament Info</label
-          >
           <input
             type="text"
             id="setup-tourney"
             placeholder="大会名"
-            class="w-full border-b border-slate-200 p-2 bg-transparent focus:outline-none focus:border-indigo-500 transition"
+            class="w-full border-b border-slate-100 p-2 mb-2 focus:outline-none focus:border-indigo-500"
           />
           <input
             type="date"
             id="setup-date"
-            class="w-full border-b border-slate-200 p-2 bg-transparent focus:outline-none focus:border-indigo-500 transition text-slate-600"
+            class="w-full p-2 bg-transparent text-slate-500 focus:outline-none"
           />
         </div>
 
-        <div class="mb-6 grid grid-cols-2 gap-4">
-          <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div
+            class="bg-white p-3 rounded-2xl border-t-4 border-indigo-500 shadow-sm"
+          >
             <div class="text-center font-bold text-indigo-600 mb-2 text-sm">
               Team A
             </div>
             <input
               type="text"
               id="setup-p1"
-              placeholder="選手1 (前衛)"
-              class="w-full bg-white border border-indigo-100 p-2 mb-2 rounded text-sm text-center"
+              placeholder="選手1"
+              class="w-full bg-slate-50 rounded p-2 mb-2 text-center text-sm"
             />
             <input
               type="text"
               id="setup-org1"
               placeholder="所属"
-              class="w-full bg-transparent border-b border-indigo-200 p-1 mb-2 rounded text-xs text-indigo-400 text-center"
+              class="w-full bg-transparent border-b border-slate-100 p-1 mb-2 text-center text-xs"
             />
             <input
               type="text"
               id="setup-p2"
-              placeholder="選手2 (後衛)"
-              class="w-full bg-white border border-indigo-100 p-2 mb-2 rounded text-sm text-center"
+              placeholder="選手2"
+              class="w-full bg-slate-50 rounded p-2 mb-2 text-center text-sm"
             />
             <input
               type="text"
               id="setup-org2"
               placeholder="所属"
-              class="w-full bg-transparent border-b border-indigo-200 p-1 rounded text-xs text-indigo-400 text-center"
+              class="w-full bg-transparent border-b border-slate-100 p-1 text-center text-xs"
             />
           </div>
-          <div class="bg-rose-50 p-3 rounded-xl border border-rose-100">
+          <div
+            class="bg-white p-3 rounded-2xl border-t-4 border-rose-500 shadow-sm"
+          >
             <div class="text-center font-bold text-rose-600 mb-2 text-sm">
               Team B
             </div>
             <input
               type="text"
               id="setup-p3"
-              placeholder="選手3 (前衛)"
-              class="w-full bg-white border border-rose-100 p-2 mb-2 rounded text-sm text-center"
+              placeholder="選手3"
+              class="w-full bg-slate-50 rounded p-2 mb-2 text-center text-sm"
             />
             <input
               type="text"
               id="setup-org3"
               placeholder="所属"
-              class="w-full bg-transparent border-b border-rose-200 p-1 mb-2 rounded text-xs text-rose-400 text-center"
+              class="w-full bg-transparent border-b border-slate-100 p-1 mb-2 text-center text-xs"
             />
             <input
               type="text"
               id="setup-p4"
-              placeholder="選手4 (後衛)"
-              class="w-full bg-white border border-rose-100 p-2 mb-2 rounded text-sm text-center"
+              placeholder="選手4"
+              class="w-full bg-slate-50 rounded p-2 mb-2 text-center text-sm"
             />
             <input
               type="text"
               id="setup-org4"
               placeholder="所属"
-              class="w-full bg-transparent border-b border-rose-200 p-1 rounded text-xs text-rose-400 text-center"
+              class="w-full bg-transparent border-b border-slate-100 p-1 text-center text-xs"
             />
           </div>
         </div>
 
-        <div
-          class="mb-8 bg-white p-4 rounded-xl shadow-sm border border-slate-200"
-        >
+        <div class="bg-white p-4 rounded-2xl shadow-sm mb-4">
           <label
-            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"
+            class="block text-xs font-bold text-slate-400 uppercase mb-3 text-center"
             >First Server</label
           >
-          <div class="flex gap-4">
+          <div class="flex gap-3">
             <label
-              class="flex-1 border-2 border-slate-100 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"
+              class="flex-1 border-2 border-slate-100 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"
             >
               <input
                 type="radio"
@@ -235,11 +255,10 @@
                 checked
                 class="hidden"
               />
-              <span class="font-bold text-indigo-600">Team A</span>
-              <span class="text-[10px] text-slate-400">Starts</span>
+              <span class="font-bold text-indigo-600">A</span>
             </label>
             <label
-              class="flex-1 border-2 border-slate-100 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50"
+              class="flex-1 border-2 border-slate-100 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50"
             >
               <input
                 type="radio"
@@ -247,180 +266,144 @@
                 value="B"
                 class="hidden"
               />
-              <span class="font-bold text-rose-600">Team B</span>
-              <span class="text-[10px] text-slate-400">Starts</span>
+              <span class="font-bold text-rose-600">B</span>
             </label>
           </div>
         </div>
 
-        <div class="space-y-3">
-          <button
-            onclick="handleStartButton()"
-            id="btn-start-main"
-            class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-slate-300 btn-press text-lg flex items-center justify-center gap-2"
-          >
-            <span>Start Match</span>
-          </button>
+        <button
+          onclick="forceReset()"
+          id="btn-force-reset"
+          class="hidden w-full text-red-400 font-bold py-3 text-sm"
+        >
+          データ削除・新規作成
+        </button>
+      </div>
 
-          <button
-            onclick="forceReset()"
-            id="btn-force-reset"
-            class="hidden w-full bg-white border border-red-200 text-red-500 font-bold py-3 rounded-xl text-sm"
-          >
-            スコアをリセットして新規作成
-          </button>
-        </div>
+      <div
+        class="p-4 bg-white border-t border-slate-100 absolute bottom-0 w-full pb-8"
+      >
+        <button
+          onclick="handleStartButton()"
+          id="btn-start-main"
+          class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-lg btn-press text-lg"
+        >
+          Start Match
+        </button>
       </div>
     </div>
 
     <div id="screen-game" class="screen bg-slate-100">
-      <div class="bg-white shadow-sm z-10 sticky top-0">
-        <div class="flex justify-between items-center px-4 pt-4 pb-2">
+      <div class="bg-white shadow-sm z-10 shrink-0 pt-safe-top">
+        <div class="flex justify-between items-center px-4 py-3">
           <button
             onclick="editSettings()"
-            class="text-slate-400 hover:text-slate-600 p-2 rounded-lg border border-transparent hover:border-slate-200 transition flex items-center gap-1 text-xs font-bold"
+            class="text-slate-400 p-2 rounded-lg border border-slate-200 text-xs font-bold"
           >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              ></path>
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              ></path>
-            </svg>
-            設定/修正
+            ⚙ 設定
           </button>
           <div
-            class="font-bold text-sm bg-slate-700 px-3 py-1 rounded-full text-slate-200"
+            class="font-bold text-sm bg-slate-800 text-white px-4 py-1 rounded-full"
           >
             GAME <span id="game-seq">1</span>
           </div>
         </div>
 
-        <div class="px-4 pb-4">
+        <div class="px-4 pb-2">
           <div
-            class="flex justify-between items-center bg-slate-800 text-white p-3 rounded-xl shadow-lg"
+            class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 flex items-end"
           >
-            <div class="flex flex-col">
-              <div class="text-[10px] text-slate-400 font-bold tracking-wider">
-                GAME COUNT
+            <div class="flex-1 text-center">
+              <div
+                class="text-5xl font-bold text-theme-a leading-none"
+                id="game-point-a"
+              >
+                0
               </div>
               <div
-                class="text-2xl font-mono font-bold tracking-widest flex items-center gap-2"
+                class="text-xs font-bold text-slate-500 truncate px-1"
+                id="label-name-a-top"
+              ></div>
+            </div>
+            <div class="pb-3 px-2">
+              <div class="text-[10px] text-slate-400 font-bold text-center">
+                G.COUNT
+              </div>
+              <div
+                class="text-2xl font-mono font-bold flex items-center justify-center gap-2 bg-slate-100 rounded px-2"
               >
-                <span id="game-gcount-a" class="text-indigo-300">0</span>
-                <span class="text-slate-500 text-sm">-</span>
-                <span id="game-gcount-b" class="text-rose-300">0</span>
+                <span id="game-gcount-a" class="text-indigo-500">0</span>
+                <span class="text-slate-400">-</span>
+                <span id="game-gcount-b" class="text-rose-500">0</span>
               </div>
             </div>
+            <div class="flex-1 text-center">
+              <div
+                class="text-5xl font-bold text-theme-b leading-none"
+                id="game-point-b"
+              >
+                0
+              </div>
+              <div
+                class="text-xs font-bold text-slate-500 truncate px-1"
+                id="label-name-b-top"
+              ></div>
+            </div>
           </div>
+        </div>
+
+        <div class="text-center pb-2">
+          <span class="text-[10px] font-bold text-slate-400 uppercase mr-2"
+            >Next Serve</span
+          >
+          <span
+            id="server-indicator"
+            class="font-bold text-sm bg-slate-200 px-3 py-0.5 rounded-full text-slate-600"
+            >---</span
+          >
         </div>
       </div>
 
-      <div
-        class="flex-1 flex flex-col p-4 overflow-y-auto max-w-md mx-auto w-full"
-      >
-        <div
-          class="flex justify-center items-end gap-2 mb-2 bg-white rounded-2xl p-4 shadow-sm border border-slate-200"
-        >
-          <div class="flex-1 text-center border-r border-slate-100">
-            <div
-              class="text-5xl font-bold text-theme-a tabular-nums leading-none mb-1"
-              id="game-point-a"
-            >
-              0
-            </div>
-            <div
-              class="text-xs font-bold text-slate-500 truncate px-1"
-              id="label-name-a-top"
-            ></div>
-          </div>
-          <div class="flex-1 text-center">
-            <div
-              class="text-5xl font-bold text-theme-b tabular-nums leading-none mb-1"
-              id="game-point-b"
-            >
-              0
-            </div>
-            <div
-              class="text-xs font-bold text-slate-500 truncate px-1"
-              id="label-name-b-top"
-            ></div>
-          </div>
-        </div>
-
-        <div class="mb-4 text-center">
-          <div
-            class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm"
-          >
-            <span
-              class="text-[10px] font-bold text-slate-400 uppercase tracking-wide"
-              >Next Server</span
-            >
-            <span id="server-indicator" class="font-bold text-sm">---</span>
-          </div>
-        </div>
-
-        <div class="flex-1 flex gap-3 min-h-[180px] mb-4">
+      <div class="flex-1 p-3 flex flex-col gap-3 min-h-0">
+        <div class="flex-1 flex gap-3">
           <button
             onclick="addPoint('A')"
-            class="flex-1 bg-theme-a active:bg-indigo-600 text-white rounded-2xl shadow-md shadow-indigo-200 flex flex-col items-center justify-center btn-press p-2 relative overflow-hidden group"
+            class="flex-1 bg-theme-a active:bg-indigo-600 text-white rounded-2xl shadow-lg flex flex-col items-center justify-center btn-press p-2 relative overflow-hidden group"
           >
-            <div
-              class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition"
-            ></div>
             <span
-              class="text-lg sm:text-xl font-bold leading-tight break-words w-full px-1 z-10"
+              class="text-2xl font-bold w-full break-words leading-tight z-10"
               id="btn-name-a"
               >A</span
             >
-            <div
-              class="mt-2 text-xs bg-indigo-700 bg-opacity-30 px-3 py-1 rounded-full z-10 font-bold tracking-wide"
+            <span class="mt-1 text-[10px] bg-white/20 px-2 rounded-full z-10"
+              >Point</span
             >
-              SCORE
-            </div>
           </button>
           <button
             onclick="addPoint('B')"
-            class="flex-1 bg-theme-b active:bg-rose-600 text-white rounded-2xl shadow-md shadow-rose-200 flex flex-col items-center justify-center btn-press p-2 relative overflow-hidden group"
+            class="flex-1 bg-theme-b active:bg-rose-600 text-white rounded-2xl shadow-lg flex flex-col items-center justify-center btn-press p-2 relative overflow-hidden group"
           >
-            <div
-              class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition"
-            ></div>
             <span
-              class="text-lg sm:text-xl font-bold leading-tight break-words w-full px-1 z-10"
+              class="text-2xl font-bold w-full break-words leading-tight z-10"
               id="btn-name-b"
               >B</span
             >
-            <div
-              class="mt-2 text-xs bg-rose-800 bg-opacity-30 px-3 py-1 rounded-full z-10 font-bold tracking-wide"
+            <span class="mt-1 text-[10px] bg-white/20 px-2 rounded-full z-10"
+              >Point</span
             >
-              SCORE
-            </div>
           </button>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 mt-auto">
+        <div class="h-16 flex gap-3 shrink-0 mb-6">
           <button
             onclick="undoPoint()"
-            class="bg-white border border-slate-300 text-slate-600 font-bold py-3 rounded-xl shadow-sm btn-press text-sm hover:bg-slate-50"
+            class="flex-1 bg-white border border-slate-200 text-slate-500 font-bold rounded-xl shadow-sm btn-press text-sm"
           >
             ↩︎ Undo
           </button>
           <button
             onclick="showPaper()"
-            class="bg-slate-700 text-white font-bold py-3 rounded-xl shadow-sm btn-press text-sm hover:bg-slate-600 flex items-center justify-center gap-2"
+            class="flex-1 bg-slate-700 text-white font-bold rounded-xl shadow-sm btn-press text-sm flex items-center justify-center gap-2"
           >
             📄 Check Paper
           </button>
@@ -428,23 +411,27 @@
 
         <div
           id="match-finish-msg"
-          class="hidden mt-4 text-center p-3 bg-amber-50 text-amber-600 font-bold rounded-xl border border-amber-200 shadow-sm animate-pulse"
+          class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3/4 bg-white/95 backdrop-blur p-6 rounded-2xl shadow-2xl border border-slate-100 text-center z-50"
         >
-          🏆 Match Finished
+          <div class="text-4xl mb-2">🏆</div>
+          <div class="text-xl font-bold text-slate-800 mb-1">
+            Match Finished
+          </div>
+          <div class="text-sm text-slate-500">Check the paper to save.</div>
         </div>
       </div>
     </div>
 
-    <div id="screen-paper" class="screen bg-slate-700">
+    <div id="screen-paper" class="screen bg-slate-800">
       <div
-        class="bg-slate-800 p-3 flex gap-3 shadow z-10 items-center justify-between"
+        class="bg-slate-900 p-3 pt-safe-top flex gap-3 shadow z-10 items-center justify-between shrink-0"
       >
         <button
           onclick="backToGame()"
-          class="text-slate-300 hover:text-white font-bold text-sm flex items-center gap-1"
+          class="text-slate-300 px-3 py-2 font-bold text-sm flex items-center gap-1"
         >
           <svg
-            class="w-4 h-4"
+            class="w-5 h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -458,181 +445,210 @@
           </svg>
           Back
         </button>
-        <span class="text-slate-400 text-xs font-bold uppercase">Preview</span>
         <button
-          onclick="window.print()"
-          class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-500 shadow text-sm flex items-center gap-2"
+          onclick="execPrint()"
+          class="bg-blue-600 text-white px-5 py-2 rounded-full font-bold shadow-lg text-sm flex items-center gap-2"
         >
-          🖨️ Print
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+            ></path>
+          </svg>
+          Print / PDF
         </button>
       </div>
 
-      <div class="flex-1 overflow-auto p-4 flex justify-center bg-slate-600">
+      <div
+        class="flex-1 overflow-hidden relative bg-slate-700 flex items-center justify-center"
+      >
         <div
-          id="print-container"
-          class="bg-white w-[210mm] h-[297mm] shadow-2xl relative flex flex-col border border-black box-border px-6 py-6 text-xs text-black shrink-0 origin-top transform scale-[0.45] sm:scale-75 md:scale-100"
+          id="preview-wrapper"
+          class="origin-center transition-transform duration-300"
         >
-          <div class="border-2 border-black w-full h-full flex flex-col">
-            <div class="h-[8%] flex b-b">
-              <div class="w-[70%] flex flex-col b-r">
-                <div class="h-1/2 b-b flex items-start p-1">
-                  <span class="mr-2 w-10">大会名</span
-                  ><span id="out-tourney"></span>
-                </div>
-                <div class="h-1/2 flex">
-                  <div class="w-1/3 b-r p-1">
-                    日付 <span id="out-date"></span>
-                  </div>
-                  <div class="w-1/3 b-r p-1">コート</div>
-                  <div class="w-1/3 p-1">種別</div>
-                </div>
-              </div>
-              <div
-                class="w-[30%] p-1 flex items-center justify-center font-bold text-lg"
-              >
-                <span id="out-gcount-a">0</span> -
-                <span id="out-gcount-b">0</span>
-              </div>
-            </div>
-            <div class="h-[12%] flex b-b border-black">
-              <div class="w-[42%] flex flex-col b-r">
-                <div class="h-1/2 b-b flex">
-                  <div
-                    class="w-6 b-r bg-gray-50 flex items-center justify-center"
-                  >
-                    No
-                  </div>
-                  <div class="flex-1 px-1 flex flex-col justify-center">
-                    <span id="out-p1" class="font-bold"></span
-                    ><span id="out-org1" class="text-[10px]"></span>
-                  </div>
-                </div>
-                <div class="h-1/2 flex">
-                  <div
-                    class="w-6 b-r bg-gray-50 flex items-center justify-center"
-                  >
-                    No
-                  </div>
-                  <div class="flex-1 px-1 flex flex-col justify-center">
-                    <span id="out-p2" class="font-bold"></span
-                    ><span id="out-org2" class="text-[10px]"></span>
-                  </div>
-                </div>
-              </div>
-              <div
-                class="w-[16%] b-r flex items-center justify-center relative bg-gray-50"
-              >
-                <span class="text-2xl font-light opacity-20"
-                  >( &nbsp;&nbsp;&nbsp; )</span
-                >
-                <span
-                  id="out-final-score"
-                  class="absolute text-xl font-bold text-black text-center leading-tight"
-                ></span>
-              </div>
-              <div class="w-[42%] flex flex-col">
-                <div class="h-1/2 b-b flex">
-                  <div
-                    class="w-6 b-r bg-gray-50 flex items-center justify-center"
-                  >
-                    No
-                  </div>
-                  <div class="flex-1 px-1 flex flex-col justify-center">
-                    <span id="out-p3" class="font-bold"></span
-                    ><span id="out-org3" class="text-[10px]"></span>
-                  </div>
-                </div>
-                <div class="h-1/2 flex">
-                  <div
-                    class="w-6 b-r bg-gray-50 flex items-center justify-center"
-                  >
-                    No
-                  </div>
-                  <div class="flex-1 px-1 flex flex-col justify-center">
-                    <span id="out-p4" class="font-bold"></span
-                    ><span id="out-org4" class="text-[10px]"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="flex-1 flex w-full relative">
-              <div class="flex-1 flex">
-                <div
-                  id="col-sr-a"
-                  class="w-6 b-r flex flex-col text-[8px] text-center"
-                ></div>
-                <div id="col-grid-a" class="flex-1 flex flex-col"></div>
-              </div>
-              <div
-                id="col-center"
-                class="w-16 b-l b-r flex flex-col border-black bg-gray-50"
-              ></div>
-              <div class="flex-1 flex">
-                <div id="col-grid-b" class="flex-1 flex flex-col"></div>
-                <div
-                  id="col-sr-b"
-                  class="w-6 b-l flex flex-col text-[8px] text-center"
-                ></div>
-              </div>
-            </div>
-            <div class="h-[13%] b-t border-black flex flex-col">
-              <div class="h-[50%] border-b border-black flex">
-                <div
-                  class="w-[20%] b-r flex flex-col text-[10px] justify-center p-1"
-                >
-                  <div class="flex justify-between border-b border-gray-300">
-                    <span>開始</span><span id="out-time-start"></span>
-                  </div>
-                  <div class="flex justify-between border-b border-gray-300">
-                    <span>終了</span><span id="out-time-end"></span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span>時間</span><span></span>
-                  </div>
-                </div>
-                <div class="w-[80%] flex flex-col">
-                  <div class="h-1/2 flex b-b border-gray-400">
-                    <div
-                      class="w-10 b-r flex items-center justify-center font-bold text-[10px] truncate px-1"
-                      id="footer-label-a"
-                    >
-                      A
+          <div id="print-wrapper">
+            <div
+              id="print-container"
+              class="bg-white w-[210mm] h-[297mm] shadow-2xl relative flex flex-col border border-black box-border px-6 py-6 text-xs text-black"
+            >
+              <div class="border-2 border-black w-full h-full flex flex-col">
+                <div class="h-[8%] flex b-b">
+                  <div class="w-[70%] flex flex-col b-r">
+                    <div class="h-1/2 b-b flex items-start p-1">
+                      <span class="mr-2 w-10">大会名</span
+                      ><span id="out-tourney"></span>
                     </div>
-                    <div id="footer-row-a" class="flex flex-1"></div>
-                    <div
-                      id="footer-total-a"
-                      class="w-10 b-l flex items-center justify-center font-bold bg-gray-50"
-                    >
-                      0
+                    <div class="h-1/2 flex">
+                      <div class="w-1/3 b-r p-1">
+                        日付 <span id="out-date"></span>
+                      </div>
+                      <div class="w-1/3 b-r p-1">コート</div>
+                      <div class="w-1/3 p-1">種別</div>
                     </div>
                   </div>
-                  <div class="h-1/2 flex">
-                    <div
-                      class="w-10 b-r flex items-center justify-center font-bold text-[10px] truncate px-1"
-                      id="footer-label-b"
-                    >
-                      B
+                  <div
+                    class="w-[30%] p-1 flex items-center justify-center font-bold text-lg"
+                  >
+                    <span id="out-gcount-a">0</span> -
+                    <span id="out-gcount-b">0</span>
+                  </div>
+                </div>
+                <div class="h-[12%] flex b-b border-black">
+                  <div class="w-[42%] flex flex-col b-r">
+                    <div class="h-1/2 b-b flex">
+                      <div
+                        class="w-6 b-r bg-gray-50 flex items-center justify-center"
+                      >
+                        No
+                      </div>
+                      <div class="flex-1 px-1 flex flex-col justify-center">
+                        <span id="out-p1" class="font-bold"></span
+                        ><span id="out-org1" class="text-[10px]"></span>
+                      </div>
                     </div>
-                    <div id="footer-row-b" class="flex flex-1"></div>
-                    <div
-                      id="footer-total-b"
-                      class="w-10 b-l flex items-center justify-center font-bold bg-gray-50"
+                    <div class="h-1/2 flex">
+                      <div
+                        class="w-6 b-r bg-gray-50 flex items-center justify-center"
+                      >
+                        No
+                      </div>
+                      <div class="flex-1 px-1 flex flex-col justify-center">
+                        <span id="out-p2" class="font-bold"></span
+                        ><span id="out-org2" class="text-[10px]"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="w-[16%] b-r flex items-center justify-center relative bg-gray-50"
+                  >
+                    <span class="text-2xl font-light opacity-20"
+                      >( &nbsp;&nbsp;&nbsp; )</span
                     >
-                      0
+                    <span
+                      id="out-final-score"
+                      class="absolute text-xl font-bold text-black text-center leading-tight"
+                    ></span>
+                  </div>
+                  <div class="w-[42%] flex flex-col">
+                    <div class="h-1/2 b-b flex">
+                      <div
+                        class="w-6 b-r bg-gray-50 flex items-center justify-center"
+                      >
+                        No
+                      </div>
+                      <div class="flex-1 px-1 flex flex-col justify-center">
+                        <span id="out-p3" class="font-bold"></span
+                        ><span id="out-org3" class="text-[10px]"></span>
+                      </div>
+                    </div>
+                    <div class="h-1/2 flex">
+                      <div
+                        class="w-6 b-r bg-gray-50 flex items-center justify-center"
+                      >
+                        No
+                      </div>
+                      <div class="flex-1 px-1 flex flex-col justify-center">
+                        <span id="out-p4" class="font-bold"></span
+                        ><span id="out-org4" class="text-[10px]"></span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div class="h-[50%] flex">
-                <div class="flex-1 b-r flex flex-col justify-end">
-                  <div class="text-center b-t py-1 text-[10px]">アンパイア</div>
+                <div class="flex-1 flex w-full relative">
+                  <div class="flex-1 flex">
+                    <div
+                      id="col-sr-a"
+                      class="w-6 b-r flex flex-col text-[8px] text-center"
+                    ></div>
+                    <div id="col-grid-a" class="flex-1 flex flex-col"></div>
+                  </div>
+                  <div
+                    id="col-center"
+                    class="w-16 b-l b-r flex flex-col border-black bg-gray-50"
+                  ></div>
+                  <div class="flex-1 flex">
+                    <div id="col-grid-b" class="flex-1 flex flex-col"></div>
+                    <div
+                      id="col-sr-b"
+                      class="w-6 b-l flex flex-col text-[8px] text-center"
+                    ></div>
+                  </div>
                 </div>
-                <div class="flex-1 b-r flex flex-col justify-end">
-                  <div class="text-center b-t py-1 text-[10px]">レフェリー</div>
-                </div>
-                <div class="flex-1 flex flex-col justify-end bg-yellow-50">
-                  <div class="text-center b-t py-1 text-[10px] font-bold">
-                    勝者署名
+                <div class="h-[13%] b-t border-black flex flex-col">
+                  <div class="h-[50%] border-b border-black flex">
+                    <div
+                      class="w-[20%] b-r flex flex-col text-[10px] justify-center p-1"
+                    >
+                      <div
+                        class="flex justify-between border-b border-gray-300"
+                      >
+                        <span>開始</span><span id="out-time-start"></span>
+                      </div>
+                      <div
+                        class="flex justify-between border-b border-gray-300"
+                      >
+                        <span>終了</span><span id="out-time-end"></span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span>時間</span><span></span>
+                      </div>
+                    </div>
+                    <div class="w-[80%] flex flex-col">
+                      <div class="h-1/2 flex b-b border-gray-400">
+                        <div
+                          class="w-10 b-r flex items-center justify-center font-bold text-[10px] truncate px-1"
+                          id="footer-label-a"
+                        >
+                          A
+                        </div>
+                        <div id="footer-row-a" class="flex flex-1"></div>
+                        <div
+                          id="footer-total-a"
+                          class="w-10 b-l flex items-center justify-center font-bold bg-gray-50"
+                        >
+                          0
+                        </div>
+                      </div>
+                      <div class="h-1/2 flex">
+                        <div
+                          class="w-10 b-r flex items-center justify-center font-bold text-[10px] truncate px-1"
+                          id="footer-label-b"
+                        >
+                          B
+                        </div>
+                        <div id="footer-row-b" class="flex flex-1"></div>
+                        <div
+                          id="footer-total-b"
+                          class="w-10 b-l flex items-center justify-center font-bold bg-gray-50"
+                        >
+                          0
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="h-[50%] flex">
+                    <div class="flex-1 b-r flex flex-col justify-end">
+                      <div class="text-center b-t py-1 text-[10px]">
+                        アンパイア
+                      </div>
+                    </div>
+                    <div class="flex-1 b-r flex flex-col justify-end">
+                      <div class="text-center b-t py-1 text-[10px]">
+                        レフェリー
+                      </div>
+                    </div>
+                    <div class="flex-1 flex flex-col justify-end bg-yellow-50">
+                      <div class="text-center b-t py-1 text-[10px] font-bold">
+                        勝者署名
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -667,52 +683,37 @@
       };
       const MAX_HISTORY = 50;
 
-      // === Navigation & Flow ===
-
-      // 試合画面から設定画面へ戻る
+      // === Navigation & Setup ===
       function editSettings() {
-        // 試合進行中かどうかを判定
         const hasPoints = state.games.some((g) => g.points.length > 0);
-
-        // UI表示の切り替え
         const startBtn = document.getElementById("btn-start-main");
         const resetBtn = document.getElementById("btn-force-reset");
         const badge = document.getElementById("resume-badge");
 
         if (hasPoints) {
-          startBtn.innerHTML = "<span>Update Info & Resume</span>";
+          startBtn.innerText = "Resume Match";
           resetBtn.classList.remove("hidden");
           badge.classList.remove("hidden");
         } else {
-          startBtn.innerHTML = "<span>Start Match</span>";
+          startBtn.innerText = "Start Match";
           resetBtn.classList.add("hidden");
           badge.classList.add("hidden");
         }
         switchScreen("setup");
       }
 
-      // 設定画面の「開始/更新」ボタンの挙動
       function handleStartButton() {
-        // フォーム内容をStateに保存
         saveSetupToState();
-
-        // 試合が既に進行中か？
         const hasPoints = state.games.some((g) => g.points.length > 0);
-
-        if (!hasPoints) {
-          // 新規開始
-          initGameLogic();
-        }
-        // どちらの場合も画面などを更新して試合画面へ
+        if (!hasPoints) initGameLogic();
         applyLabels();
-        buildPaperDOM(); // 初回またはリセット後
+        buildPaperDOM();
         updateGameScreen();
         switchScreen("game");
       }
 
-      // 強制リセット（設定画面から）
       function forceReset() {
-        if (confirm("現在のスコアを全て削除して、新しい試合を開始しますか？")) {
+        if (confirm("全てのスコアを消去してリセットしますか？")) {
           saveSetupToState();
           initGameLogic();
           applyLabels();
@@ -733,19 +734,17 @@
         state.org3 = document.getElementById("setup-org3").value;
         state.p4 = document.getElementById("setup-p4").value;
         state.org4 = document.getElementById("setup-org4").value;
-
         const radios = document.getElementsByName("first-server");
         for (let r of radios) {
           if (r.checked) state.initialServer = r.value;
         }
-
         state.nameLabelA =
           [state.p1, state.p2].filter(Boolean).join("・") || "Team A";
         state.nameLabelB =
           [state.p3, state.p4].filter(Boolean).join("・") || "Team B";
       }
 
-      // === Game Logic ===
+      // === Logic ===
       function initGameLogic() {
         state.startTime = new Date().toLocaleTimeString("ja-JP", {
           hour: "2-digit",
@@ -754,7 +753,7 @@
         state.games = [];
         state.history = [];
         state.matchFinished = false;
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 7; i++)
           state.games.push({
             finished: false,
             winner: null,
@@ -762,7 +761,6 @@
             scoreA: 0,
             scoreB: 0,
           });
-        }
       }
 
       function addPoint(playerKey) {
@@ -796,7 +794,6 @@
           game.finished = true;
           game.winner = "B";
         }
-
         checkMatchEnd();
         updateGameScreen();
       }
@@ -838,26 +835,21 @@
         return state.games.findIndex((g) => !g.finished);
       }
 
-      // サーバー計算ロジック
       function getNextServer(gameIdx, pointsCount) {
         if (gameIdx === -1) return "---";
         const firstServer = state.initialServer;
         const secondServer = firstServer === "A" ? "B" : "A";
         let currentSide = "";
-
         if (gameIdx < 6) {
           currentSide = gameIdx % 2 === 0 ? firstServer : secondServer;
         } else {
-          // Final (Game 7): 2 points rotation
-          // Starts with the side that follows Game 6 order.
-          // Game 6 (index 5) was SecondServer. So Final starts FirstServer.
           const rot = Math.floor(pointsCount / 2);
           currentSide = rot % 2 === 0 ? firstServer : secondServer;
         }
         return currentSide === "A" ? state.nameLabelA : state.nameLabelB;
       }
 
-      // === UI Update ===
+      // === UI ===
       function applyLabels() {
         document.getElementById("btn-name-a").innerText = state.nameLabelA;
         document.getElementById("btn-name-b").innerText = state.nameLabelB;
@@ -877,7 +869,6 @@
         });
         document.getElementById("game-gcount-a").innerText = wA;
         document.getElementById("game-gcount-b").innerText = wB;
-
         const currentIdx = getCurrentGameIndex();
         const serverIndEl = document.getElementById("server-indicator");
 
@@ -887,41 +878,61 @@
             currentIdx === 6 ? "F" : currentIdx + 1;
           document.getElementById("game-point-a").innerText = game.scoreA;
           document.getElementById("game-point-b").innerText = game.scoreB;
-
           const srvName = getNextServer(currentIdx, game.points.length);
           serverIndEl.innerText = srvName;
           serverIndEl.className =
             srvName === state.nameLabelA
-              ? "font-bold text-lg text-theme-a transition duration-300"
-              : "font-bold text-lg text-theme-b transition duration-300";
-
+              ? "font-bold text-sm bg-indigo-100 text-indigo-700 px-3 py-0.5 rounded-full"
+              : "font-bold text-sm bg-rose-100 text-rose-700 px-3 py-0.5 rounded-full";
           document.getElementById("match-finish-msg").classList.add("hidden");
         } else {
           document.getElementById("game-seq").innerText = "-";
           document.getElementById("game-point-a").innerText = "-";
           document.getElementById("game-point-b").innerText = "-";
           serverIndEl.innerText = "FINISH";
-          serverIndEl.className = "font-bold text-lg text-slate-400";
+          serverIndEl.className =
+            "font-bold text-sm bg-slate-200 text-slate-500 px-3 py-0.5 rounded-full";
           document
             .getElementById("match-finish-msg")
             .classList.remove("hidden");
         }
       }
 
-      // === Paper ===
+      // === Paper & Preview Scaling ===
       function showPaper() {
         updatePaperView();
         switchScreen("paper");
+        // プレビューの自動縮小
+        setTimeout(fitPaperToScreen, 50);
       }
+
       function backToGame() {
         switchScreen("game");
       }
+
       function switchScreen(id) {
         document
           .querySelectorAll(".screen")
           .forEach((el) => el.classList.remove("active"));
         document.getElementById(`screen-${id}`).classList.add("active");
       }
+
+      function fitPaperToScreen() {
+        const screenW = window.innerWidth;
+        const paperW = 210 * 3.78; // 210mm in px (approx)
+        // 画面幅に収まる倍率を計算 (少し余白を持たせる)
+        const scale = Math.min((screenW - 20) / paperW, 1);
+        document.getElementById("preview-wrapper").style.transform =
+          `scale(${scale})`;
+      }
+
+      // === iOS Printing Fix ===
+      function execPrint() {
+        // 1. 全スクリーン隠す, 2. print-wrapperだけ見せる
+        // これはCSS @media printで制御するが、念のためJSでもクラス制御
+        window.print();
+      }
+
       function buildPaperDOM() {
         const ids = [
           "col-sr-a",
@@ -1046,6 +1057,15 @@
         document.getElementById("out-time-end").textContent =
           state.endTime || "";
       }
+
+      // リサイズ時に再計算
+      window.addEventListener("resize", () => {
+        if (
+          document.getElementById("screen-paper").classList.contains("active")
+        ) {
+          fitPaperToScreen();
+        }
+      });
     </script>
   </body>
 </html>
