@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>Soft Tennis Scorer V9 (Signature)</title>
+    <title>Soft Tennis Scorer V10 (Large Font)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* ================= 印刷設定 ================= */
@@ -134,7 +134,6 @@
         color: #be123c;
       }
 
-      /* 署名キャンバス */
       canvas {
         touch-action: none;
         cursor: crosshair;
@@ -541,8 +540,14 @@
                       No
                     </div>
                     <div class="flex-1 px-1 flex flex-col justify-center">
-                      <span id="out-p1" class="font-bold"></span
-                      ><span id="out-org1" class="text-[10px]"></span>
+                      <span
+                        id="out-p1"
+                        class="font-bold text-xl leading-tight"
+                      ></span
+                      ><span
+                        id="out-org1"
+                        class="text-sm leading-tight text-gray-700"
+                      ></span>
                     </div>
                   </div>
                   <div class="h-1/2 flex">
@@ -552,8 +557,14 @@
                       No
                     </div>
                     <div class="flex-1 px-1 flex flex-col justify-center">
-                      <span id="out-p2" class="font-bold"></span
-                      ><span id="out-org2" class="text-[10px]"></span>
+                      <span
+                        id="out-p2"
+                        class="font-bold text-xl leading-tight"
+                      ></span
+                      ><span
+                        id="out-org2"
+                        class="text-sm leading-tight text-gray-700"
+                      ></span>
                     </div>
                   </div>
                 </div>
@@ -576,8 +587,14 @@
                       No
                     </div>
                     <div class="flex-1 px-1 flex flex-col justify-center">
-                      <span id="out-p3" class="font-bold"></span
-                      ><span id="out-org3" class="text-[10px]"></span>
+                      <span
+                        id="out-p3"
+                        class="font-bold text-xl leading-tight"
+                      ></span
+                      ><span
+                        id="out-org3"
+                        class="text-sm leading-tight text-gray-700"
+                      ></span>
                     </div>
                   </div>
                   <div class="h-1/2 flex">
@@ -587,8 +604,14 @@
                       No
                     </div>
                     <div class="flex-1 px-1 flex flex-col justify-center">
-                      <span id="out-p4" class="font-bold"></span
-                      ><span id="out-org4" class="text-[10px]"></span>
+                      <span
+                        id="out-p4"
+                        class="font-bold text-xl leading-tight"
+                      ></span
+                      ><span
+                        id="out-org4"
+                        class="text-sm leading-tight text-gray-700"
+                      ></span>
                     </div>
                   </div>
                 </div>
@@ -782,34 +805,27 @@
         nameLabelA: "A",
         nameLabelB: "B",
         initialServer: "A",
-        signatureData: null, // 画像データ(base64)
+        signatureData: null,
       };
       const MAX_HISTORY = 50;
 
-      // === Signature Logic ===
+      // === Signature ===
       let canvas,
         ctx,
         isDrawing = false;
-
       function initCanvas() {
         canvas = document.getElementById("sig-canvas");
         ctx = canvas.getContext("2d");
-
-        // Resize canvas to actual display size
         const rect = canvas.parentElement.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
-
         ctx.lineWidth = 3;
         ctx.lineCap = "round";
         ctx.strokeStyle = "#000";
-
-        // Events
         canvas.addEventListener("mousedown", startDraw);
         canvas.addEventListener("mousemove", moveDraw);
         canvas.addEventListener("mouseup", endDraw);
         canvas.addEventListener("mouseout", endDraw);
-
         canvas.addEventListener(
           "touchstart",
           (e) => {
@@ -831,7 +847,6 @@
           endDraw();
         });
       }
-
       function startDraw(e) {
         isDrawing = true;
         const rect = canvas.getBoundingClientRect();
@@ -853,10 +868,8 @@
       function endDraw() {
         isDrawing = false;
       }
-
       function openSignatureModal() {
         document.getElementById("modal-signature").classList.remove("hidden");
-        // Wait for display:block to calculate size
         setTimeout(initCanvas, 100);
       }
       function closeSignatureModal() {
@@ -868,14 +881,11 @@
       function saveSignature() {
         state.signatureData = canvas.toDataURL("image/png");
         closeSignatureModal();
-        // もしPaper画面なら即反映
         if (
           document.getElementById("screen-paper").classList.contains("active")
-        ) {
+        )
           updatePaperView();
-        } else {
-          showPaper(); // Paper画面へ移動
-        }
+        else showPaper();
       }
 
       // === Navigation ===
@@ -884,7 +894,6 @@
         const startBtn = document.getElementById("btn-start-main");
         const resetBtn = document.getElementById("btn-force-reset");
         const badge = document.getElementById("resume-badge");
-
         if (hasPoints) {
           startBtn.innerText = "Resume Match";
           resetBtn.classList.remove("hidden");
@@ -896,7 +905,6 @@
         }
         switchScreen("setup");
       }
-
       function handleStartButton() {
         saveSetupToState();
         const hasPoints = state.games.some((g) => g.points.length > 0);
@@ -906,10 +914,9 @@
         updateGameScreen();
         switchScreen("game");
       }
-
       function forceReset() {
-        if (confirm("全データを削除してリセットしますか？")) {
-          state.signatureData = null; // サインも消す
+        if (confirm("全データを削除しますか？")) {
+          state.signatureData = null;
           saveSetupToState();
           initGameLogic();
           applyLabels();
@@ -918,13 +925,11 @@
           switchScreen("game");
         }
       }
-
       function saveSetupToState() {
         state.tourney = document.getElementById("setup-tourney").value;
         state.date = document.getElementById("setup-date").value;
         state.court = document.getElementById("setup-court").value;
         state.category = document.getElementById("setup-category").value;
-
         state.p1 = document.getElementById("setup-p1").value;
         state.org1 = document.getElementById("setup-org1").value;
         state.p2 = document.getElementById("setup-p2").value;
@@ -933,10 +938,8 @@
         state.org3 = document.getElementById("setup-org3").value;
         state.p4 = document.getElementById("setup-p4").value;
         state.org4 = document.getElementById("setup-org4").value;
-
         state.umpireM = document.getElementById("setup-umpire-m").value;
         state.umpireS = document.getElementById("setup-umpire-s").value;
-
         const radios = document.getElementsByName("first-server");
         for (let r of radios) {
           if (r.checked) state.initialServer = r.value;
@@ -965,7 +968,6 @@
             scoreB: 0,
           });
       }
-
       function addPoint(playerKey) {
         if (state.matchFinished) return;
         if (state.history.length >= MAX_HISTORY) state.history.shift();
@@ -976,18 +978,15 @@
             winner: state.winner,
           }),
         );
-
         const gameIdx = getCurrentGameIndex();
         if (gameIdx === -1) return;
         const game = state.games[gameIdx];
         game.points.push(playerKey);
-
         let pA = 0,
           pB = 0;
         game.points.forEach((p) => (p === "A" ? pA++ : pB++));
         game.scoreA = pA;
         game.scoreB = pB;
-
         const isFinal = gameIdx === 6;
         const target = isFinal ? 7 : 4;
         if (pA >= target && pA >= pB + 2) {
@@ -1000,7 +999,6 @@
         checkMatchEnd();
         updateGameScreen();
       }
-
       function undoPoint() {
         if (state.history.length === 0) return;
         const prev = JSON.parse(state.history.pop());
@@ -1009,7 +1007,6 @@
         state.winner = prev.winner;
         updateGameScreen();
       }
-
       function checkMatchEnd() {
         let wA = 0,
           wB = 0;
@@ -1025,7 +1022,6 @@
           });
         }
       }
-
       function getCurrentGameIndex() {
         let wA = 0,
           wB = 0;
@@ -1037,7 +1033,6 @@
         if (wA === 3 && wB === 3) return 6;
         return state.games.findIndex((g) => !g.finished);
       }
-
       function getNextServer(gameIdx, pointsCount) {
         if (gameIdx === -1) return "---";
         const firstServer = state.initialServer;
@@ -1063,7 +1058,6 @@
         document.getElementById("footer-label-a").innerText = state.nameLabelA;
         document.getElementById("footer-label-b").innerText = state.nameLabelB;
       }
-
       function updateGameScreen() {
         let wA = 0,
           wB = 0;
@@ -1074,7 +1068,6 @@
         document.getElementById("game-gcount-b").innerText = wB;
         const currentIdx = getCurrentGameIndex();
         const serverIndEl = document.getElementById("server-indicator");
-
         if (currentIdx !== -1) {
           const game = state.games[currentIdx];
           document.getElementById("game-seq").innerText =
@@ -1100,25 +1093,20 @@
             .classList.remove("hidden");
         }
       }
-
-      // === Paper & Preview ===
       function showPaper() {
         updatePaperView();
         switchScreen("paper");
         setTimeout(fitPaperToScreen, 50);
       }
-
       function backToGame() {
         switchScreen("game");
       }
-
       function switchScreen(id) {
         document
           .querySelectorAll(".screen")
           .forEach((el) => el.classList.remove("active"));
         document.getElementById(`screen-${id}`).classList.add("active");
       }
-
       function fitPaperToScreen() {
         const screenW = window.innerWidth;
         const paperW = 210 * 3.78;
@@ -1126,7 +1114,6 @@
         document.getElementById("preview-wrapper").style.transform =
           `scale(${scale})`;
       }
-
       function startIOSPrint() {
         const source = document.getElementById("paper-source");
         const clone = source.cloneNode(true);
@@ -1139,7 +1126,6 @@
           overlay.innerHTML = "";
         }, 1000);
       }
-
       function buildPaperDOM() {
         const ids = [
           "col-sr-a",
@@ -1202,10 +1188,8 @@
           const el = document.getElementById(`out-${k.toLowerCase()}`);
           if (el) el.innerText = state[k];
         });
-        // Umpire labels map fix (id mismatch prevention)
         document.getElementById("out-umpire-m").innerText = state.umpireM;
         document.getElementById("out-umpire-s").innerText = state.umpireS;
-
         document
           .querySelectorAll('[id^="cell-"]')
           .forEach((e) => (e.textContent = ""));
@@ -1272,8 +1256,6 @@
           state.startTime || "";
         document.getElementById("out-time-end").textContent =
           state.endTime || "";
-
-        // Signature
         const sigImg = document.getElementById("out-winner-sig-img");
         if (state.signatureData) {
           sigImg.src = state.signatureData;
