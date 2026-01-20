@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Soft Tennis Scorer V5 (Soft UI & Fix Logic)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* ================= 印刷設定 ================= */
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+
+      @media print {
+        body,
+        html {
+          width: 210mm;
+          height: 297mm;
+          background: white;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .screen {
+          display: none !important;
+        }
+        #print-container {
+          display: block !important;
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          border: none;
+          transform: none !important;
+        }
+      }
+
+      /* ================= UIスタイル (Soft Theme) ================= */
+      body {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* 画面制御 */
+      .screen {
+        display: none;
+        height: 100vh;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .screen.active {
+        display: flex;
+      }
+
+      /* ジャッジペーパー罫線 */
+      .b-r {
+        border-right: 1px solid #000;
+      }
+      .b-b {
+        border-bottom: 1px solid #000;
+      }
+      .b-l {
+        border-left: 1px solid #000;
+      }
+      .b-t {
+        border-top: 1px solid #000;
+      }
+      .b-b-dotted {
+        border-bottom: 1px dotted #999;
+      }
+
+      /* 高さ計算 */
+      .h-game {
+        height: calc(100% * 2 / 15);
+      }
+      .h-final {
+        height: calc(100% * 3 / 15);
+      }
+
+      /* マーク */
+      .mark-o {
+        font-size: 1.2rem;
+        font-weight: bold;
+        line-height: 1;
+        display: block;
+      }
+      .mark-x {
+        font-size: 1rem;
+        line-height: 1;
+        display: block;
+      }
+
+      /* アニメーション */
+      .btn-press {
+        transition:
+          transform 0.05s,
+          opacity 0.1s;
+      }
+      .btn-press:active {
+        transform: scale(0.97);
+        opacity: 0.9;
+      }
+
+      /* カスタムカラー */
+      .bg-theme-a {
+        background-color: #6366f1;
+      } /* Indigo-500 */
+      .bg-theme-b {
+        background-color: #f43f5e;
+      } /* Rose-500 */
+      .text-theme-a {
+        color: #4338ca;
+      } /* Indigo-700 */
+      .text-theme-b {
+        color: #be123c;
+      } /* Rose-700 */
+      .bg-theme-bg {
+        background-color: #f8fafc;
+      } /* Slate-50 */
+    </style>
+  </head>
+  <body
+    class="bg-theme-bg text-slate-700 font-sans select-none fixed w-full h-full"
+  >
+    <div
+      id="screen-setup"
+      class="screen active p-6 overflow-y-auto bg-slate-50"
+    >
+      <div class="max-w-md mx-auto w-full">
+        <h1
+          class="text-2xl font-bold mb-6 text-slate-700 border-b border-slate-300 pb-2"
+        >
+          New Match
+        </h1>
+
+        <div
+          class="mb-6 space-y-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200"
+        >
+          <label
+            class="block text-xs font-bold text-slate-400 uppercase tracking-wider"
+            >Tournament Info</label
+          >
+          <input
+            type="text"
+            id="setup-tourney"
+            placeholder="大会名"
+            class="w-full border-b border-slate-200 p-2 bg-transparent focus:outline-none focus:border-indigo-500 transition"
+          />
+          <input
+            type="date"
+            id="setup-date"
+            class="w-full border-b border-slate-200 p-2 bg-transparent focus:outline-none focus:border-indigo-500 transition text-slate-600"
+          />
+        </div>
+
+        <div class="mb-6 grid grid-cols-2 gap-4">
+          <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+            <div class="text-center font-bold text-indigo-600 mb-2 text-sm">
+              Team A
+            </div>
+            <input
+              type="text"
+              id="setup-p1"
+              placeholder="選手1 (前衛)"
+              class="w-full bg-white border border-indigo-100 p-2 mb-2 rounded text-sm text-center"
+            />
+            <input
+              type="text"
+              id="setup-org1"
+              placeholder="所属"
+              class="w-full bg-transparent border-b border-indigo-200 p-1 mb-2 rounded text-xs text-indigo-400 text-center"
+            />
+            <input
+              type="text"
+              id="setup-p2"
+              placeholder="選手2 (後衛)"
+              class="w-full bg-white border border-indigo-100 p-2 mb-2 rounded text-sm text-center"
+            />
+            <input
+              type="text"
+              id="setup-org2"
+              placeholder="所属"
+              class="w-full bg-transparent border-b border-indigo-200 p-1 rounded text-xs text-indigo-400 text-center"
+            />
+          </div>
+          <div class="bg-rose-50 p-3 rounded-xl border border-rose-100">
+            <div class="text-center font-bold text-rose-600 mb-2 text-sm">
+              Team B
+            </div>
+            <input
+              type="text"
+              id="setup-p3"
+              placeholder="選手3 (前衛)"
+              class="w-full bg-white border border-rose-100 p-2 mb-2 rounded text-sm text-center"
+            />
+            <input
+              type="text"
+              id="setup-org3"
+              placeholder="所属"
+              class="w-full bg-transparent border-b border-rose-200 p-1 mb-2 rounded text-xs text-rose-400 text-center"
+            />
+            <input
+              type="text"
+              id="setup-p4"
+              placeholder="選手4 (後衛)"
+              class="w-full bg-white border border-rose-100 p-2 mb-2 rounded text-sm text-center"
+            />
+            <input
+              type="text"
+              id="setup-org4"
+              placeholder="所属"
+              class="w-full bg-transparent border-b border-rose-200 p-1 rounded text-xs text-rose-400 text-center"
+            />
+          </div>
+        </div>
+
+        <div
+          class="mb-8 bg-white p-4 rounded-xl shadow-sm border border-slate-200"
+        >
+          <label
+            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"
+            >First Server (Toss Winner)</label
+          >
+          <div class="flex gap-4">
+            <label
+              class="flex-1 border-2 border-slate-100 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 hover:bg-slate-50"
+            >
+              <input
+                type="radio"
+                name="first-server"
+                value="A"
+                checked
+                class="hidden"
+              />
+              <span class="font-bold text-indigo-600">Team A</span>
+              <span class="text-[10px] text-slate-400">Starts</span>
+            </label>
+            <label
+              class="flex-1 border-2 border-slate-100 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer transition has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50 hover:bg-slate-50"
+            >
+              <input
+                type="radio"
+                name="first-server"
+                value="B"
+                class="hidden"
+              />
+              <span class="font-bold text-rose-600">Team B</span>
+              <span class="text-[10px] text-slate-400">Starts</span>
+            </label>
+          </div>
+        </div>
+
+        <button
+          onclick="startGame()"
+          class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-slate-300 btn-press text-lg flex items-center justify-center gap-2"
+        >
+          <span>Start Match</span>
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M14 5l7 7m0 0l-7 7m7-7H3"
+            ></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="screen-game" class="screen bg-slate-100">
+      <div class="bg-white shadow-sm z-10 sticky top-0">
+        <div
+          class="p-2 px-4 flex justify-between items-center bg-slate-800 text-white m-2 rounded-xl shadow-lg"
+        >
+          <div class="flex flex-col">
+            <div class="text-[10px] text-slate-400 font-bold tracking-wider">
+              GAME COUNT
+            </div>
+            <div
+              class="text-2xl font-mono font-bold tracking-widest flex items-center gap-2"
+            >
+              <span id="game-gcount-a" class="text-indigo-300">0</span>
+              <span class="text-slate-500 text-sm">-</span>
+              <span id="game-gcount-b" class="text-rose-300">0</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-[10px] text-slate-400 font-bold tracking-wider">
+              CURRENT
+            </div>
+            <div
+              class="font-bold text-sm bg-slate-700 px-2 py-0.5 rounded text-slate-200"
+            >
+              GAME <span id="game-seq">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="flex-1 flex flex-col p-4 overflow-y-auto max-w-md mx-auto w-full"
+      >
+        <div
+          class="flex justify-center items-end gap-2 mb-2 bg-white rounded-2xl p-4 shadow-sm border border-slate-200"
+        >
+          <div class="flex-1 text-center border-r border-slate-100">
+            <div
+              class="text-5xl font-bold text-theme-a tabular-nums leading-none mb-1"
+              id="game-point-a"
+            >
+              0
+            </div>
+            <div
+              class="text-xs font-bold text-slate-500 truncate px-1"
+              id="label-name-a-top"
+            ></div>
+          </div>
+          <div class="flex-1 text-center">
+            <div
+              class="text-5xl font-bold text-theme-b tabular-nums leading-none mb-1"
+              id="game-point-b"
+            >
+              0
+            </div>
+            <div
+              class="text-xs font-bold text-slate-500 truncate px-1"
+              id="label-name-b-top"
+            ></div>
+          </div>
+        </div>
+
+        <div class="mb-4 text-center">
+          <div
+            class="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm"
+          >
+            <span
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wide"
+              >Next Server</span
+            >
+            <span id="server-indicator" class="font-bold text-sm">---</span>
+          </div>
+        </div>
+
+        <div class="flex-1 flex gap-3 min-h-[200px] mb-4">
+          <button
+            onclick="addPoint('A')"
+            class="flex-1 bg-theme-a active:bg-indigo-600 text-white rounded-2xl shadow-md shadow-indigo-200 flex flex-col items-center justify-center btn-press p-2 relative overflow-hidden group"
+          >
+            <div
+              class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition"
+            ></div>
+            <span
+              class="text-lg sm:text-xl font-bold leading-tight break-words w-full px-1 z-10"
+              id="btn-name-a"
+              >A</span
+            >
+            <div
+              class="mt-2 text-xs bg-indigo-700 bg-opacity-30 px-3 py-1 rounded-full z-10 font-bold tracking-wide"
+            >
+              SCORE
+            </div>
+          </button>
+          <button
+            onclick="addPoint('B')"
+            class="flex-1 bg-theme-b active:bg-rose-600 text-white rounded-2xl shadow-md shadow-rose-200 flex flex-col items-center justify-center btn-press p-2 relative overflow-hidden group"
+          >
+            <div
+              class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition"
+            ></div>
+            <span
+              class="text-lg sm:text-xl font-bold leading-tight break-words w-full px-1 z-10"
+              id="btn-name-b"
+              >B</span
+            >
+            <div
+              class="mt-2 text-xs bg-rose-800 bg-opacity-30 px-3 py-1 rounded-full z-10 font-bold tracking-wide"
+            >
+              SCORE
+            </div>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-auto">
+          <button
+            onclick="undoPoint()"
+            class="bg-white border border-slate-300 text-slate-600 font-bold py-3 rounded-xl shadow-sm btn-press text-sm hover:bg-slate-50"
+          >
+            ↩︎ Undo
+          </button>
+          <button
+            onclick="showPaper()"
+            class="bg-slate-700 text-white font-bold py-3 rounded-xl shadow-sm btn-press text-sm hover:bg-slate-600 flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              ></path>
+            </svg>
+            Check Paper
+          </button>
+        </div>
+
+        <div
+          id="match-finish-msg"
+          class="hidden mt-4 text-center p-3 bg-amber-50 text-amber-600 font-bold rounded-xl border border-amber-200 shadow-sm animate-pulse"
+        >
+          🏆 Match Finished
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-paper" class="screen bg-slate-700">
+      <div
+        class="bg-slate-800 p-3 flex gap-3 shadow z-10 items-center justify-between"
+      >
+        <button
+          onclick="backToGame()"
+          class="text-slate-300 hover:text-white font-bold text-sm flex items-center gap-1"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            ></path>
+          </svg>
+          Back
+        </button>
+        <span class="text-slate-400 text-xs font-bold uppercase">Preview</span>
+        <button
+          onclick="window.print()"
+          class="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-500 shadow text-sm flex items-center gap-2"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+            ></path>
+          </svg>
+          Print
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-auto p-4 flex justify-center bg-slate-600">
+        <div
+          id="print-container"
+          class="bg-white w-[210mm] h-[297mm] shadow-2xl relative flex flex-col border border-black box-border px-6 py-6 text-xs text-black shrink-0 origin-top transform scale-[0.45] sm:scale-75 md:scale-100"
+        >
+          <div class="border-2 border-black w-full h-full flex flex-col">
+            <div class="h-[8%] flex b-b">
+              <div class="w-[70%] flex flex-col b-r">
+                <div class="h-1/2 b-b flex items-start p-1">
+                  <span class="mr-2 w-10">大会名</span
+                  ><span id="out-tourney"></span>
+                </div>
+                <div class="h-1/2 flex">
+                  <div class="w-1/3 b-r p-1">
+                    日付 <span id="out-date"></span>
+                  </div>
+                  <div class="w-1/3 b-r p-1">コート</div>
+                  <div class="w-1/3 p-1">種別</div>
+                </div>
+              </div>
+              <div
+                class="w-[30%] p-1 flex items-center justify-center font-bold text-lg"
+              >
+                <span id="out-gcount-a">0</span> -
+                <span id="out-gcount-b">0</span>
+              </div>
+            </div>
+
+            <div class="h-[12%] flex b-b border-black">
+              <div class="w-[42%] flex flex-col b-r">
+                <div class="h-1/2 b-b flex">
+                  <div
+                    class="w-6 b-r bg-gray-50 flex items-center justify-center"
+                  >
+                    No
+                  </div>
+                  <div class="flex-1 px-1 flex flex-col justify-center">
+                    <span id="out-p1" class="font-bold"></span
+                    ><span id="out-org1" class="text-[10px]"></span>
+                  </div>
+                </div>
+                <div class="h-1/2 flex">
+                  <div
+                    class="w-6 b-r bg-gray-50 flex items-center justify-center"
+                  >
+                    No
+                  </div>
+                  <div class="flex-1 px-1 flex flex-col justify-center">
+                    <span id="out-p2" class="font-bold"></span
+                    ><span id="out-org2" class="text-[10px]"></span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="w-[16%] b-r flex items-center justify-center relative bg-gray-50"
+              >
+                <span class="text-2xl font-light opacity-20"
+                  >( &nbsp;&nbsp;&nbsp; )</span
+                >
+                <span
+                  id="out-final-score"
+                  class="absolute text-xl font-bold text-black text-center leading-tight"
+                ></span>
+              </div>
+              <div class="w-[42%] flex flex-col">
+                <div class="h-1/2 b-b flex">
+                  <div
+                    class="w-6 b-r bg-gray-50 flex items-center justify-center"
+                  >
+                    No
+                  </div>
+                  <div class="flex-1 px-1 flex flex-col justify-center">
+                    <span id="out-p3" class="font-bold"></span
+                    ><span id="out-org3" class="text-[10px]"></span>
+                  </div>
+                </div>
+                <div class="h-1/2 flex">
+                  <div
+                    class="w-6 b-r bg-gray-50 flex items-center justify-center"
+                  >
+                    No
+                  </div>
+                  <div class="flex-1 px-1 flex flex-col justify-center">
+                    <span id="out-p4" class="font-bold"></span
+                    ><span id="out-org4" class="text-[10px]"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex-1 flex w-full relative">
+              <div class="flex-1 flex">
+                <div
+                  id="col-sr-a"
+                  class="w-6 b-r flex flex-col text-[8px] text-center"
+                ></div>
+                <div id="col-grid-a" class="flex-1 flex flex-col"></div>
+              </div>
+              <div
+                id="col-center"
+                class="w-16 b-l b-r flex flex-col border-black bg-gray-50"
+              ></div>
+              <div class="flex-1 flex">
+                <div id="col-grid-b" class="flex-1 flex flex-col"></div>
+                <div
+                  id="col-sr-b"
+                  class="w-6 b-l flex flex-col text-[8px] text-center"
+                ></div>
+              </div>
+            </div>
+
+            <div class="h-[13%] b-t border-black flex flex-col">
+              <div class="h-[50%] border-b border-black flex">
+                <div
+                  class="w-[20%] b-r flex flex-col text-[10px] justify-center p-1"
+                >
+                  <div class="flex justify-between border-b border-gray-300">
+                    <span>開始</span><span id="out-time-start"></span>
+                  </div>
+                  <div class="flex justify-between border-b border-gray-300">
+                    <span>終了</span><span id="out-time-end"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>時間</span><span></span>
+                  </div>
+                </div>
+                <div class="w-[80%] flex flex-col">
+                  <div class="h-1/2 flex b-b border-gray-400">
+                    <div
+                      class="w-10 b-r flex items-center justify-center font-bold text-[10px] truncate px-1"
+                      id="footer-label-a"
+                    >
+                      A
+                    </div>
+                    <div id="footer-row-a" class="flex flex-1"></div>
+                    <div
+                      id="footer-total-a"
+                      class="w-10 b-l flex items-center justify-center font-bold bg-gray-50"
+                    >
+                      0
+                    </div>
+                  </div>
+                  <div class="h-1/2 flex">
+                    <div
+                      class="w-10 b-r flex items-center justify-center font-bold text-[10px] truncate px-1"
+                      id="footer-label-b"
+                    >
+                      B
+                    </div>
+                    <div id="footer-row-b" class="flex flex-1"></div>
+                    <div
+                      id="footer-total-b"
+                      class="w-10 b-l flex items-center justify-center font-bold bg-gray-50"
+                    >
+                      0
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="h-[50%] flex">
+                <div class="flex-1 b-r flex flex-col justify-end">
+                  <div class="text-center b-t py-1 text-[10px]">アンパイア</div>
+                </div>
+                <div class="flex-1 b-r flex flex-col justify-end">
+                  <div class="text-center b-t py-1 text-[10px]">レフェリー</div>
+                </div>
+                <div class="flex-1 flex flex-col justify-end bg-yellow-50">
+                  <div class="text-center b-t py-1 text-[10px] font-bold">
+                    勝者署名
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // === State Management ===
+      const state = {
+        games: [],
+        history: [],
+        matchFinished: false,
+        winner: null,
+        startTime: null,
+        endTime: null,
+
+        // Config
+        tourney: "",
+        date: "",
+        p1: "",
+        org1: "",
+        p2: "",
+        org2: "", // Team A
+        p3: "",
+        org3: "",
+        p4: "",
+        org4: "", // Team B
+        nameLabelA: "A",
+        nameLabelB: "B",
+
+        initialServer: "A", // 'A' or 'B' (Game 1 Start)
+      };
+
+      const MAX_HISTORY = 50;
+
+      // === Setup ===
+      function startGame() {
+        state.tourney = document.getElementById("setup-tourney").value;
+        state.date = document.getElementById("setup-date").value;
+        state.p1 = document.getElementById("setup-p1").value;
+        state.org1 = document.getElementById("setup-org1").value;
+        state.p2 = document.getElementById("setup-p2").value;
+        state.org2 = document.getElementById("setup-org2").value;
+        state.p3 = document.getElementById("setup-p3").value;
+        state.org3 = document.getElementById("setup-org3").value;
+        state.p4 = document.getElementById("setup-p4").value;
+        state.org4 = document.getElementById("setup-org4").value;
+
+        const radios = document.getElementsByName("first-server");
+        for (let r of radios) {
+          if (r.checked) state.initialServer = r.value;
+        }
+
+        let labelA =
+          [state.p1, state.p2].filter(Boolean).join("・") || "Team A";
+        let labelB =
+          [state.p3, state.p4].filter(Boolean).join("・") || "Team B";
+        state.nameLabelA = labelA;
+        state.nameLabelB = labelB;
+
+        initGameLogic();
+        applyLabels();
+        buildPaperDOM();
+        updateGameScreen();
+        switchScreen("game");
+      }
+
+      // === Logic ===
+      function initGameLogic() {
+        state.startTime = new Date().toLocaleTimeString("ja-JP", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        state.games = [];
+        state.history = [];
+        state.matchFinished = false;
+        // 7 Games
+        for (let i = 0; i < 7; i++) {
+          state.games.push({
+            finished: false,
+            winner: null,
+            points: [],
+            scoreA: 0,
+            scoreB: 0,
+          });
+        }
+      }
+
+      function addPoint(playerKey) {
+        if (state.matchFinished) return;
+
+        // History
+        if (state.history.length >= MAX_HISTORY) state.history.shift();
+        state.history.push(
+          JSON.stringify({
+            games: state.games,
+            matchFinished: state.matchFinished,
+            winner: state.winner,
+          }),
+        );
+
+        const gameIdx = getCurrentGameIndex();
+        if (gameIdx === -1) return;
+
+        const game = state.games[gameIdx];
+        game.points.push(playerKey);
+
+        let pA = 0,
+          pB = 0;
+        game.points.forEach((p) => (p === "A" ? pA++ : pB++));
+        game.scoreA = pA;
+        game.scoreB = pB;
+
+        const isFinal = gameIdx === 6;
+        const target = isFinal ? 7 : 4;
+
+        if (pA >= target && pA >= pB + 2) {
+          game.finished = true;
+          game.winner = "A";
+        } else if (pB >= target && pB >= pA + 2) {
+          game.finished = true;
+          game.winner = "B";
+        }
+
+        checkMatchEnd();
+        updateGameScreen();
+      }
+
+      function undoPoint() {
+        if (state.history.length === 0) return;
+        const prev = JSON.parse(state.history.pop());
+        state.games = prev.games;
+        state.matchFinished = prev.matchFinished;
+        state.winner = prev.winner;
+        updateGameScreen();
+      }
+
+      function checkMatchEnd() {
+        let wA = 0,
+          wB = 0;
+        state.games.forEach((g) => {
+          if (g.finished) g.winner === "A" ? wA++ : wB++;
+        });
+        if (wA === 4 || wB === 4) {
+          state.matchFinished = true;
+          state.winner = wA === 4 ? "A" : "B";
+          state.endTime = new Date().toLocaleTimeString("ja-JP", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+      }
+
+      function getCurrentGameIndex() {
+        let wA = 0,
+          wB = 0;
+        for (let i = 0; i < 6; i++) {
+          if (state.games[i].finished)
+            state.games[i].winner === "A" ? wA++ : wB++;
+        }
+        if (wA === 4 || wB === 4) return -1;
+        if (wA === 3 && wB === 3) return 6;
+        return state.games.findIndex((g) => !g.finished);
+      }
+
+      // === Server Calculation ===
+      function getNextServer(gameIdx, pointsCount) {
+        if (gameIdx === -1) return "---";
+
+        const firstServer = state.initialServer;
+        const secondServer = firstServer === "A" ? "B" : "A";
+        let currentSide = "";
+
+        if (gameIdx < 6) {
+          // Normal: Game 1,3,5=First, 2,4,6=Second
+          // Index 0,2,4 -> First. Index 1,3,5 -> Second.
+          currentSide = gameIdx % 2 === 0 ? firstServer : secondServer;
+        } else {
+          // Final (Game 7/Index 6): Soft Tennis Rotation (2-2-2)
+          // Starts with the side that follows Game 6 order.
+          // Game 6 (index 5) was SecondServer. So Final starts FirstServer.
+          // Rotation: 2 points each.
+          const rot = Math.floor(pointsCount / 2);
+          currentSide = rot % 2 === 0 ? firstServer : secondServer;
+        }
+
+        return currentSide === "A" ? state.nameLabelA : state.nameLabelB;
+      }
+
+      // === UI ===
+      function applyLabels() {
+        document.getElementById("btn-name-a").innerText = state.nameLabelA;
+        document.getElementById("btn-name-b").innerText = state.nameLabelB;
+        document.getElementById("label-name-a-top").innerText =
+          state.nameLabelA;
+        document.getElementById("label-name-b-top").innerText =
+          state.nameLabelB;
+        document.getElementById("footer-label-a").innerText = state.nameLabelA;
+        document.getElementById("footer-label-b").innerText = state.nameLabelB;
+      }
+
+      function updateGameScreen() {
+        let wA = 0,
+          wB = 0;
+        state.games.forEach((g) => {
+          if (g.finished) g.winner === "A" ? wA++ : wB++;
+        });
+
+        document.getElementById("game-gcount-a").innerText = wA;
+        document.getElementById("game-gcount-b").innerText = wB;
+
+        const currentIdx = getCurrentGameIndex();
+        const serverIndEl = document.getElementById("server-indicator");
+
+        if (currentIdx !== -1) {
+          const game = state.games[currentIdx];
+          document.getElementById("game-seq").innerText =
+            currentIdx === 6 ? "F" : currentIdx + 1;
+          document.getElementById("game-point-a").innerText = game.scoreA;
+          document.getElementById("game-point-b").innerText = game.scoreB;
+
+          // Next Server Calculation
+          const srvName = getNextServer(currentIdx, game.points.length);
+          serverIndEl.innerText = srvName;
+          serverIndEl.className =
+            srvName === state.nameLabelA
+              ? "font-bold text-lg text-theme-a transition duration-300"
+              : "font-bold text-lg text-theme-b transition duration-300";
+
+          document.getElementById("match-finish-msg").classList.add("hidden");
+        } else {
+          document.getElementById("game-seq").innerText = "-";
+          document.getElementById("game-point-a").innerText = "-";
+          document.getElementById("game-point-b").innerText = "-";
+          serverIndEl.innerText = "FINISH";
+          serverIndEl.className = "font-bold text-lg text-slate-400";
+          document
+            .getElementById("match-finish-msg")
+            .classList.remove("hidden");
+        }
+      }
+
+      // === Paper ===
+      function showPaper() {
+        updatePaperView();
+        switchScreen("paper");
+      }
+      function backToGame() {
+        switchScreen("game");
+      }
+      function switchScreen(id) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((el) => el.classList.remove("active"));
+        document.getElementById(`screen-${id}`).classList.add("active");
+      }
+
+      function buildPaperDOM() {
+        const ids = [
+          "col-sr-a",
+          "col-grid-a",
+          "col-center",
+          "col-grid-b",
+          "col-sr-b",
+          "footer-row-a",
+          "footer-row-b",
+        ];
+        ids.forEach((id) => (document.getElementById(id).innerHTML = ""));
+
+        let htmlGrid_A = "",
+          htmlCenter = "",
+          htmlGrid_B = "",
+          htmlFoot_A = "",
+          htmlFoot_B = "";
+
+        for (let i = 0; i < 7; i++) {
+          const isFinal = i === 6;
+          const hClass = isFinal ? "h-final" : "h-game";
+          document.getElementById("col-sr-a").innerHTML +=
+            `<div id="sr-a-${i}" class="${hClass} b-b flex items-center justify-center relative"></div>`;
+          document.getElementById("col-sr-b").innerHTML +=
+            `<div id="sr-b-${i}" class="${hClass} b-b flex items-center justify-center relative"></div>`;
+
+          const rows = isFinal ? 3 : 2;
+          const makeGrid = (pid) => {
+            let s = `<div class="${hClass} b-b flex flex-col">`;
+            for (let r = 0; r < rows; r++) {
+              s += `<div class="flex-1 flex border-gray-400 ${r < rows - 1 ? "b-b-dotted" : ""}">`;
+              for (let c = 0; c < 16; c++)
+                s += `<div id="cell-${pid}-${i}-${r}-${c}" class="flex-1 b-r border-gray-400 flex items-center justify-center"></div>`;
+              s += `</div>`;
+            }
+            s += `</div>`;
+            return s;
+          };
+          document.getElementById("col-grid-a").innerHTML += makeGrid("a");
+          document.getElementById("col-grid-b").innerHTML += makeGrid("b");
+
+          let centerC = isFinal
+            ? `<div class="border border-black rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-white mb-0.5">F</div>`
+            : `<div class="text-lg font-bold leading-none mb-0.5">${i + 1}</div>`;
+          document.getElementById("col-center").innerHTML +=
+            `<div class="${hClass} b-b flex flex-col items-center justify-center">${centerC}<div id="paper-score-${i}" class="w-10 h-3 border border-black bg-white flex items-center justify-center text-[8px] text-gray-300">( - )</div></div>`;
+
+          document.getElementById("footer-row-a").innerHTML +=
+            `<div id="sum-a-${i}" class="flex-1 b-r border-gray-400 flex items-center justify-center font-bold text-[10px]"></div>`;
+          document.getElementById("footer-row-b").innerHTML +=
+            `<div id="sum-b-${i}" class="flex-1 b-r border-gray-400 flex items-center justify-center font-bold text-[10px]"></div>`;
+        }
+      }
+
+      function updatePaperView() {
+        [
+          "tourney",
+          "date",
+          "p1",
+          "org1",
+          "p2",
+          "org2",
+          "p3",
+          "org3",
+          "p4",
+          "org4",
+        ].forEach((k) => {
+          document.getElementById(`out-${k}`).innerText = state[k];
+        });
+        document
+          .querySelectorAll('[id^="cell-"]')
+          .forEach((e) => (e.textContent = ""));
+        document
+          .querySelectorAll('[id^="sr-"]')
+          .forEach((e) => (e.textContent = ""));
+        document
+          .querySelectorAll('[id^="sum-"]')
+          .forEach((e) => (e.textContent = ""));
+
+        let wA = 0,
+          wB = 0;
+        state.games.forEach((g, idx) => {
+          const isFinal = idx === 6;
+          if (g.finished) g.winner === "A" ? wA++ : wB++;
+
+          const sb = document.getElementById(`paper-score-${idx}`);
+          if (g.points.length > 0) {
+            sb.textContent = `(${g.scoreA}-${g.scoreB})`;
+            sb.className =
+              "w-10 h-3 border border-black bg-white flex items-center justify-center text-[8px] font-bold text-black";
+          } else {
+            sb.textContent = `( - )`;
+            sb.className =
+              "w-10 h-3 border border-black bg-white flex items-center justify-center text-[8px] text-gray-300";
+          }
+
+          if (g.points.length > 0) {
+            // S mark logic: who served the 1st point (index 0)
+            const startSideName = getNextServer(idx, 0);
+            const sideCode = startSideName === state.nameLabelA ? "a" : "b";
+            const srEl = document.getElementById(`sr-${sideCode}-${idx}`);
+            if (srEl) srEl.textContent = "S";
+          }
+
+          g.points.forEach((winner, pIdx) => {
+            const row = Math.floor(pIdx / 16);
+            const col = pIdx % 16;
+            if (row >= (isFinal ? 3 : 2)) return;
+            const cA = document.getElementById(`cell-a-${idx}-${row}-${col}`);
+            const cB = document.getElementById(`cell-b-${idx}-${row}-${col}`);
+            if (winner === "A") {
+              if (cA) cA.innerHTML = '<span class="mark-o">○</span>';
+              if (cB) cB.innerHTML = '<span class="mark-x">×</span>';
+            } else {
+              if (cA) cA.innerHTML = '<span class="mark-x">×</span>';
+              if (cB) cB.innerHTML = '<span class="mark-o">○</span>';
+            }
+          });
+
+          if (g.finished) {
+            document.getElementById(`sum-a-${idx}`).textContent = g.scoreA;
+            document.getElementById(`sum-b-${idx}`).textContent = g.scoreB;
+          }
+        });
+
+        document.getElementById("out-gcount-a").textContent = wA;
+        document.getElementById("out-gcount-b").textContent = wB;
+        document.getElementById("footer-total-a").textContent = wA;
+        document.getElementById("footer-total-b").textContent = wB;
+
+        if (state.matchFinished) {
+          const circled = ["0", "①", "②", "③", "④", "⑤", "⑥", "⑦"];
+          const strA = wA <= 7 ? circled[wA] || wA : wA;
+          const strB = wB <= 7 ? circled[wB] || wB : wB;
+          document.getElementById("out-final-score").textContent =
+            `${strA} - ${strB}`;
+        } else {
+          document.getElementById("out-final-score").textContent = "";
+        }
+
+        document.getElementById("out-time-start").textContent =
+          state.startTime || "";
+        document.getElementById("out-time-end").textContent =
+          state.endTime || "";
+      }
+    </script>
+  </body>
+</html>
