@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>Soft Tennis Scorer V10 (Large Font)</title>
+    <title>Soft Tennis Scorer V11 (Variable Games)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* ================= 印刷設定 ================= */
@@ -77,7 +77,7 @@
         font-size: 16px !important;
       }
 
-      /* ジャッジペーパー罫線 */
+      /* 罫線 */
       .b-r {
         border-right: 1px solid #000;
       }
@@ -93,12 +93,8 @@
       .b-b-dotted {
         border-bottom: 1px dotted #999;
       }
-      .h-game {
-        height: calc(100% * 2 / 15);
-      }
-      .h-final {
-        height: calc(100% * 3 / 15);
-      }
+
+      /* マーク */
       .mark-o {
         font-size: 1.2rem;
         font-weight: bold;
@@ -154,6 +150,24 @@
       </div>
 
       <div class="flex-1 overflow-y-auto p-4 pb-32">
+        <div
+          class="mb-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100"
+        >
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-2"
+            >Match Games</label
+          >
+          <div class="flex gap-2">
+            <select
+              id="setup-games"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-center text-slate-700 focus:outline-none focus:border-indigo-500"
+            >
+              <option value="5">5 Games (Best of 5)</option>
+              <option value="7" selected>7 Games (Best of 7)</option>
+              <option value="9">9 Games (Best of 9)</option>
+            </select>
+          </div>
+        </div>
+
         <div
           class="mb-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3"
         >
@@ -805,6 +819,7 @@
         nameLabelA: "A",
         nameLabelB: "B",
         initialServer: "A",
+        matchGames: 7, // Default
         signatureData: null,
       };
       const MAX_HISTORY = 50;
@@ -894,14 +909,18 @@
         const startBtn = document.getElementById("btn-start-main");
         const resetBtn = document.getElementById("btn-force-reset");
         const badge = document.getElementById("resume-badge");
+        const gamesSelect = document.getElementById("setup-games");
+
         if (hasPoints) {
           startBtn.innerText = "Resume Match";
           resetBtn.classList.remove("hidden");
           badge.classList.remove("hidden");
+          gamesSelect.disabled = true; // 途中変更不可
         } else {
           startBtn.innerText = "Start Match";
           resetBtn.classList.add("hidden");
           badge.classList.add("hidden");
+          gamesSelect.disabled = false;
         }
         switchScreen("setup");
       }
@@ -926,6 +945,9 @@
         }
       }
       function saveSetupToState() {
+        state.matchGames = parseInt(
+          document.getElementById("setup-games").value,
+        );
         state.tourney = document.getElementById("setup-tourney").value;
         state.date = document.getElementById("setup-date").value;
         state.court = document.getElementById("setup-court").value;
@@ -959,7 +981,7 @@
         state.games = [];
         state.history = [];
         state.matchFinished = false;
-        for (let i = 0; i < 7; i++)
+        for (let i = 0; i < state.matchGames; i++) {
           state.games.push({
             finished: false,
             winner: null,
@@ -967,6 +989,7 @@
             scoreA: 0,
             scoreB: 0,
           });
+        }
       }
       function addPoint(playerKey) {
         if (state.matchFinished) return;
@@ -978,6 +1001,7 @@
             winner: state.winner,
           }),
         );
+
         const gameIdx = getCurrentGameIndex();
         if (gameIdx === -1) return;
         const game = state.games[gameIdx];
@@ -987,8 +1011,11 @@
         game.points.forEach((p) => (p === "A" ? pA++ : pB++));
         game.scoreA = pA;
         game.scoreB = pB;
-        const isFinal = gameIdx === 6;
+
+        // Last index is always Final
+        const isFinal = gameIdx === state.matchGames - 1;
         const target = isFinal ? 7 : 4;
+
         if (pA >= target && pA >= pB + 2) {
           game.finished = true;
           game.winner = "A";
@@ -1013,9 +1040,10 @@
         state.games.forEach((g) => {
           if (g.finished) g.winner === "A" ? wA++ : wB++;
         });
-        if (wA === 4 || wB === 4) {
+        const threshold = Math.ceil(state.matchGames / 2);
+        if (wA === threshold || wB === threshold) {
           state.matchFinished = true;
-          state.winner = wA === 4 ? "A" : "B";
+          state.winner = wA === threshold ? "A" : "B";
           state.endTime = new Date().toLocaleTimeString("ja-JP", {
             hour: "2-digit",
             minute: "2-digit",
@@ -1025,12 +1053,17 @@
       function getCurrentGameIndex() {
         let wA = 0,
           wB = 0;
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < state.matchGames - 1; i++) {
           if (state.games[i].finished)
             state.games[i].winner === "A" ? wA++ : wB++;
         }
-        if (wA === 4 || wB === 4) return -1;
-        if (wA === 3 && wB === 3) return 6;
+        const threshold = Math.ceil(state.matchGames / 2);
+        // Already won?
+        if (wA === threshold || wB === threshold) return -1;
+        // Reach final?
+        if (wA === threshold - 1 && wB === threshold - 1)
+          return state.matchGames - 1;
+
         return state.games.findIndex((g) => !g.finished);
       }
       function getNextServer(gameIdx, pointsCount) {
@@ -1038,11 +1071,12 @@
         const firstServer = state.initialServer;
         const secondServer = firstServer === "A" ? "B" : "A";
         let currentSide = "";
-        if (gameIdx < 6) {
-          currentSide = gameIdx % 2 === 0 ? firstServer : secondServer;
-        } else {
+        // Check if Final
+        if (gameIdx === state.matchGames - 1) {
           const rot = Math.floor(pointsCount / 2);
-          currentSide = rot % 2 === 0 ? firstServer : secondServer;
+          currentSide = rot % 2 === 0 ? firstServer : secondServer; // V11 Fixed: Final starts with First (from prev game logic assumption)
+        } else {
+          currentSide = gameIdx % 2 === 0 ? firstServer : secondServer;
         }
         return currentSide === "A" ? state.nameLabelA : state.nameLabelB;
       }
@@ -1070,8 +1104,10 @@
         const serverIndEl = document.getElementById("server-indicator");
         if (currentIdx !== -1) {
           const game = state.games[currentIdx];
-          document.getElementById("game-seq").innerText =
-            currentIdx === 6 ? "F" : currentIdx + 1;
+          const isFinal = currentIdx === state.matchGames - 1;
+          document.getElementById("game-seq").innerText = isFinal
+            ? "F"
+            : currentIdx + 1;
           document.getElementById("game-point-a").innerText = game.scoreA;
           document.getElementById("game-point-b").innerText = game.scoreB;
           const srvName = getNextServer(currentIdx, game.points.length);
@@ -1126,6 +1162,8 @@
           overlay.innerHTML = "";
         }, 1000);
       }
+
+      // === Build Grid Dynamic Height ===
       function buildPaperDOM() {
         const ids = [
           "col-sr-a",
@@ -1137,16 +1175,51 @@
           "footer-row-b",
         ];
         ids.forEach((id) => (document.getElementById(id).innerHTML = ""));
-        for (let i = 0; i < 7; i++) {
-          const isFinal = i === 6;
-          const hClass = isFinal ? "h-final" : "h-game";
-          document.getElementById("col-sr-a").innerHTML +=
-            `<div id="sr-a-${i}" class="${hClass} b-b flex items-center justify-center relative"></div>`;
-          document.getElementById("col-sr-b").innerHTML +=
-            `<div id="sr-b-${i}" class="${hClass} b-b flex items-center justify-center relative"></div>`;
+
+        // Calculate total height units
+        // Normal = 2 units, Final = 3 units
+        const normalGames = state.matchGames - 1;
+        const totalUnits = normalGames * 2 + 3;
+        const pctNormal = (2 / totalUnits) * 100;
+        const pctFinal = (3 / totalUnits) * 100;
+
+        for (let i = 0; i < state.matchGames; i++) {
+          const isFinal = i === state.matchGames - 1;
+          const heightStyle = `height: ${isFinal ? pctFinal : pctNormal}%;`;
+
+          // Helper
+          const div = (cls, content = "") =>
+            `<div class="${cls}" style="${heightStyle}">${content}</div>`;
+
+          // SR
+          document.getElementById("col-sr-a").innerHTML += div(
+            "b-b flex items-center justify-center relative",
+            "",
+            `sr-a-${i}`,
+          );
+          document.getElementById("col-sr-b").innerHTML += div(
+            "b-b flex items-center justify-center relative",
+            "",
+            `sr-b-${i}`,
+          );
+
+          // Center
+          let centerC = isFinal
+            ? `<div class="border border-black rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-white mb-0.5">F</div>`
+            : `<div class="text-lg font-bold leading-none mb-0.5">${i + 1}</div>`;
+          document.getElementById("col-center").innerHTML +=
+            `<div class="b-b flex flex-col items-center justify-center" style="${heightStyle}">${centerC}<div id="paper-score-${i}" class="w-10 h-3 border border-black bg-white flex items-center justify-center text-[8px] text-gray-300">( - )</div></div>`;
+
+          // Footer
+          document.getElementById("footer-row-a").innerHTML +=
+            `<div id="sum-a-${i}" class="flex-1 b-r border-gray-400 flex items-center justify-center font-bold text-[10px]"></div>`;
+          document.getElementById("footer-row-b").innerHTML +=
+            `<div id="sum-b-${i}" class="flex-1 b-r border-gray-400 flex items-center justify-center font-bold text-[10px]"></div>`;
+
+          // Grids
           const rows = isFinal ? 3 : 2;
           const makeGrid = (pid) => {
-            let s = `<div class="${hClass} b-b flex flex-col">`;
+            let s = `<div class="b-b flex flex-col" style="${heightStyle}">`;
             for (let r = 0; r < rows; r++) {
               s += `<div class="flex-1 flex border-gray-400 ${r < rows - 1 ? "b-b-dotted" : ""}">`;
               for (let c = 0; c < 16; c++)
@@ -1157,17 +1230,17 @@
           };
           document.getElementById("col-grid-a").innerHTML += makeGrid("a");
           document.getElementById("col-grid-b").innerHTML += makeGrid("b");
-          let centerC = isFinal
-            ? `<div class="border border-black rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold bg-white mb-0.5">F</div>`
-            : `<div class="text-lg font-bold leading-none mb-0.5">${i + 1}</div>`;
-          document.getElementById("col-center").innerHTML +=
-            `<div class="${hClass} b-b flex flex-col items-center justify-center">${centerC}<div id="paper-score-${i}" class="w-10 h-3 border border-black bg-white flex items-center justify-center text-[8px] text-gray-300">( - )</div></div>`;
-          document.getElementById("footer-row-a").innerHTML +=
-            `<div id="sum-a-${i}" class="flex-1 b-r border-gray-400 flex items-center justify-center font-bold text-[10px]"></div>`;
-          document.getElementById("footer-row-b").innerHTML +=
-            `<div id="sum-b-${i}" class="flex-1 b-r border-gray-400 flex items-center justify-center font-bold text-[10px]"></div>`;
+        }
+
+        // SR id injection helper
+        for (let i = 0; i < state.matchGames; i++) {
+          document.querySelector(`#col-sr-a > div:nth-child(${i + 1})`).id =
+            `sr-a-${i}`;
+          document.querySelector(`#col-sr-b > div:nth-child(${i + 1})`).id =
+            `sr-b-${i}`;
         }
       }
+
       function updatePaperView() {
         [
           "tourney",
@@ -1188,8 +1261,6 @@
           const el = document.getElementById(`out-${k.toLowerCase()}`);
           if (el) el.innerText = state[k];
         });
-        document.getElementById("out-umpire-m").innerText = state.umpireM;
-        document.getElementById("out-umpire-s").innerText = state.umpireS;
         document
           .querySelectorAll('[id^="cell-"]')
           .forEach((e) => (e.textContent = ""));
@@ -1199,10 +1270,10 @@
         document
           .querySelectorAll('[id^="sum-"]')
           .forEach((e) => (e.textContent = ""));
+
         let wA = 0,
           wB = 0;
         state.games.forEach((g, idx) => {
-          const isFinal = idx === 6;
           if (g.finished) g.winner === "A" ? wA++ : wB++;
           const sb = document.getElementById(`paper-score-${idx}`);
           if (g.points.length > 0) {
@@ -1223,6 +1294,7 @@
           g.points.forEach((winner, pIdx) => {
             const row = Math.floor(pIdx / 16);
             const col = pIdx % 16;
+            const isFinal = idx === state.matchGames - 1;
             if (row >= (isFinal ? 3 : 2)) return;
             const cA = document.getElementById(`cell-a-${idx}-${row}-${col}`);
             const cB = document.getElementById(`cell-b-${idx}-${row}-${col}`);
@@ -1243,10 +1315,11 @@
         document.getElementById("out-gcount-b").textContent = wB;
         document.getElementById("footer-total-a").textContent = wA;
         document.getElementById("footer-total-b").textContent = wB;
+
         if (state.matchFinished) {
-          const circled = ["0", "①", "②", "③", "④", "⑤", "⑥", "⑦"];
-          const strA = wA <= 7 ? circled[wA] || wA : wA;
-          const strB = wB <= 7 ? circled[wB] || wB : wB;
+          const circled = ["0", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨"];
+          const strA = circled[wA] || wA;
+          const strB = circled[wB] || wB;
           document.getElementById("out-final-score").textContent =
             `${strA} - ${strB}`;
         } else {
@@ -1256,6 +1329,7 @@
           state.startTime || "";
         document.getElementById("out-time-end").textContent =
           state.endTime || "";
+
         const sigImg = document.getElementById("out-winner-sig-img");
         if (state.signatureData) {
           sigImg.src = state.signatureData;
